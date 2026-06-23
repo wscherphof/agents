@@ -9,8 +9,8 @@ AGENTS_GIT_ACCOUNT=merkatordev
 AGENTS_GIT_REPO=GeoWEP
 
 # Optional (for a component in a monorepo).
+AGENTS_COMPONENT_DIR="components/geowep-ng"
 AGENTS_COMPONENT_DIR=""
-AGENTS_COMPONENT_DIR="docker/ng"
 
 set +x
 

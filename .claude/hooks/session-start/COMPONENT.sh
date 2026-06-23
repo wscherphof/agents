@@ -2,4 +2,4 @@
 
 set -x
 
-npm ci
+# npm ci
