@@ -19,6 +19,8 @@
 
 set -euo pipefail
 
+set -x
+
 # --- temp bookkeeping -------------------------------------------------------
 TMPFILES=()
 TMPDIRS=()
@@ -125,7 +127,7 @@ mirror_mcp() {
   local inputs=()
   mapfile -t inputs < <(json_inputs "$rel")
   if [ ${#inputs[@]} -eq 0 ]; then
-    [ -e "$out" ] && rm -f "$out"   # mirror: source dropped it -> remove
+    if [ -e "$out" ]; then rm -f "$out"; fi   # mirror: source dropped it -> remove
     return 0
   fi
   jq -s 'reduce .[] as $o ({}; . * $o)' "${inputs[@]}" > "$out"
@@ -208,7 +210,7 @@ mirror_dir() { # mirror_dir <relpath>
     mkdir -p "$out"
     rsync -a --delete "$staging/" "$out/"   # exact union; prune stale files
   else
-    [ -e "$out" ] && rm -rf "$out"          # mirror: source dropped it
+    if [ -e "$out" ]; then rm -rf "$out"; fi   # mirror: source dropped it
   fi
 }
 
@@ -255,7 +257,7 @@ PY
   elif [ -s "$base" ]; then
     cat "$base" > "$out"
   else
-    [ -e "$out" ] && rm -f "$out"
+    if [ -e "$out" ]; then rm -f "$out"; fi
   fi
 }
 
@@ -277,7 +279,7 @@ if git -C "$DEST" diff --cached --quiet; then
 fi
 
 msg="chore(agents): mirror agent settings from $AGENTS_GIT_ACCOUNT/$AGENTS_GIT_REPO"
-[ -n "$COMPONENT_REL" ] && msg="$msg (component: $COMPONENT_REL)"
+if [ -n "$COMPONENT_REL" ]; then msg="$msg (component: $COMPONENT_REL)"; fi
 msg="$msg @ $SRC_SHA"
 
 git -C "$DEST" \

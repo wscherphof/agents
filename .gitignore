@@ -1,2 +1,4 @@
 # Source project repos cloned by the session-start hook.
 /src/
+
+*.log

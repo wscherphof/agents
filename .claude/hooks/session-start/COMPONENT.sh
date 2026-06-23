@@ -1,3 +1,5 @@
 #!/usr/bin/env bash
 
-# npm install
+set -x
+
+npm ci
