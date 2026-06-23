@@ -27,12 +27,6 @@ dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   session_start_dir=$dir/session-start
   src_dir="$CLAUDE_PROJECT_DIR/src"
   AGENTS_REPO_DIR=$src_dir/$AGENTS_GIT_REPO
-  AGENTS_COMPONENT_DIR=$(realpath "$AGENTS_REPO_DIR/${AGENTS_COMPONENT_DIR:-.}")
-  export AGENTS_COMPONENT_DIR
-  export AGENTS_REPO_DIR
-  export AGENTS_REPO_URL
-  export AGENTS_GIT_ACCOUNT
-  export AGENTS_GIT_REPO
 
   mkdir -p "$src_dir"
   if [ -d "$AGENTS_REPO_DIR/.git" ]; then
@@ -41,6 +35,13 @@ dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     echo "Cloning $AGENTS_GIT_ACCOUNT/$AGENTS_GIT_REPO into $AGENTS_REPO_DIR"
     git clone "$AGENTS_REPO_URL" "$AGENTS_REPO_DIR"
   fi
+
+  AGENTS_COMPONENT_DIR=$(realpath "$AGENTS_REPO_DIR/${AGENTS_COMPONENT_DIR:-.}")
+  export AGENTS_COMPONENT_DIR
+  export AGENTS_REPO_DIR
+  export AGENTS_REPO_URL
+  export AGENTS_GIT_ACCOUNT
+  export AGENTS_GIT_REPO
 
   cd "$AGENTS_REPO_DIR" || exit
   bash "$session_start_dir/PROJECT.sh"

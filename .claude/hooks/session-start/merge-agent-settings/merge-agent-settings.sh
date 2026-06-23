@@ -21,6 +21,8 @@ set -euo pipefail
 
 set -x
 
+sudo apt install -y rsync jq python3
+
 # --- temp bookkeeping -------------------------------------------------------
 TMPFILES=()
 TMPDIRS=()
