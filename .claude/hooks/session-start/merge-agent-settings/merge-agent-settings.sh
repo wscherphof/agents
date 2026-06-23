@@ -21,6 +21,7 @@ set -euo pipefail
 
 set -x
 
+sudo apt update
 sudo apt install -y rsync jq python3
 
 # --- temp bookkeeping -------------------------------------------------------
