@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Mirror agent settings and instructions from the cloned source project repo
 # (its root, plus an optional monorepo component dir layered on top) INTO the
-# agents repo at $CLAUDE_PROJECT_DIR, then commit and push to the current branch.
+# agents repo at $CLAUDE_PROJECT_DIR, then commit and push to the project's
+# settings branch (derived from the project identity — see section 8).
 #
 # Invoked by session-start.sh with cwd = the source clone root. Environment
 # provided by the parent:
@@ -273,8 +274,23 @@ mirror_dir .agents
 mirror_dir .github
 merge_claude_md
 
-# --- 8. commit + push to the current branch of the agents repo --------------
-branch="$(git -C "$DEST" rev-parse --abbrev-ref HEAD)"
+# --- 8. commit + push to the project's settings branch ----------------------
+# The mirrored settings must land on a STABLE per-project branch so any future
+# web session started from it picks them up. Do NOT push to whatever branch the
+# session is currently checked out on: the web harness starts sessions on
+# ephemeral claude/<id> branches, which are the wrong home for shared settings
+# (and "the branch this session started from" is unrecoverable from git once
+# that branch gets its own commits, e.g. on resume).
+#
+# Derive the target from the project identity (repo + optional component) so it
+# is independent of the current checkout: GeoWEP + docker/ng -> geowep/ng.
+# AGENTS_SETTINGS_BRANCH overrides it when the convention does not fit.
+target_branch="${AGENTS_SETTINGS_BRANCH:-}"
+if [ -z "$target_branch" ]; then
+  target_branch="${AGENTS_GIT_REPO,,}"
+  [ -n "$COMPONENT_REL" ] && target_branch="$target_branch/${COMPONENT_REL##*/}"
+fi
+
 git -C "$DEST" add -A
 if git -C "$DEST" diff --cached --quiet; then
   log "no changes to commit"
@@ -289,5 +305,7 @@ git -C "$DEST" \
   -c user.name="agents session-start" \
   -c user.email="wouter.scherphof@merkator.com" \
   commit -m "$msg" >&2
-git -C "$DEST" push origin "HEAD:$branch" >&2
-log "committed and pushed to $branch"
+# Plain (non-forced) push: a fast-forward onto the settings branch succeeds; if
+# that branch has diverged it fails loudly rather than clobbering other work.
+git -C "$DEST" push origin "HEAD:$target_branch" >&2
+log "committed and pushed to $target_branch"
