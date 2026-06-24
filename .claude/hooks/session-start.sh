@@ -52,9 +52,6 @@ dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     bash "$scripts_dir/install-az-devops.sh" &
   fi &>"$scripts_dir/install-az-devops.log"
 
-  echo "Installing nvm script to ~/.local/bin/nvm..."
-  cp -p "$scripts_dir/nvm" ~/.local/bin/nvm
-
   echo "Running PROJECT.sh..."
   cd "$AGENTS_REPO_DIR" || exit
   bash "$session_start_dir/PROJECT.sh"
