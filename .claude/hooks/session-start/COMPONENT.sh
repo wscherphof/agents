@@ -1,6 +1,15 @@
 #!/usr/bin/env bash
 
-set -euxo pipefail
+set -euo pipefail
+
+# This script runs non-interactively, so login/profile scripts that define the
+# `nvm` shell function are not sourced. Load nvm here.
+echo "Loading nvm..."
+export NVM_DIR="${NVM_DIR:-/opt/nvm}"
+# shellcheck disable=SC1091
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+set -x
 
 NODE_VERSION=24.16.0
 nvm install $NODE_VERSION
