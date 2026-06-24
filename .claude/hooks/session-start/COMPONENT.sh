@@ -10,8 +10,8 @@ echo "Installing Node.js 24.16.0..."
 nvm install 24.16.0
 nvm use 24.16.0
 
-echo "Installing Chromium for Playwright..."
-npx playwright install chromium
-
 echo "Installing npm dependencies..."
 npm ci
+
+echo "Installing Chromium for Playwright..."
+npx playwright install chromium
