@@ -36,7 +36,6 @@ out, the install is probably still running — wait a bit and retry; check
 [.claude/hooks/session-start/scripts/install-az-devops.log](.claude/hooks/session-start/scripts/install-az-devops.log)
 for progress. `git push` itself does not depend on `az` (it authenticates via
 the PAT in the remote URL), so push first, then create the PR once `az` is up.
-
 <!-- BEGIN MERGED AGENT INSTRUCTIONS (auto-generated, do not edit) -->
 
 ## From merkatordev/GeoWEP (root)
