@@ -14,10 +14,10 @@ AGENTS_COMPONENT_DIR="docker/ng"
 # set to construct the repo URL for cloning.
 
 [ -n "${GITHUB_PERSONAL_ACCESS_TOKEN:-}" ] &&
-AGENTS_REPO_URL=https://${GITHUB_PERSONAL_ACCESS_TOKEN:-}@github.com/$AGENTS_GIT_ACCOUNT/$AGENTS_GIT_REPO.git
+  AGENTS_REPO_URL=https://${GITHUB_PERSONAL_ACCESS_TOKEN:-}@github.com/$AGENTS_GIT_ACCOUNT/$AGENTS_GIT_REPO.git
 
 [ -n "${AZURE_DEVOPS_EXT_PAT:-}" ] &&
-AGENTS_REPO_URL=https://${AZURE_DEVOPS_EXT_PAT:-}@dev.azure.com/$AGENTS_GIT_ACCOUNT/_git/$AGENTS_GIT_REPO
+  AGENTS_REPO_URL=https://${AZURE_DEVOPS_EXT_PAT:-}@dev.azure.com/$AGENTS_GIT_ACCOUNT/_git/$AGENTS_GIT_REPO
 
 # Child scripts are setup steps. Send their stdout to stderr so it stays out of
 # Claude's context (SessionStart adds hook stdout to context) while remaining
@@ -25,6 +25,7 @@ AGENTS_REPO_URL=https://${AZURE_DEVOPS_EXT_PAT:-}@dev.azure.com/$AGENTS_GIT_ACCO
 dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 (
   session_start_dir=$dir/session-start
+  scripts_dir=$session_start_dir/scripts
   src_dir="$CLAUDE_PROJECT_DIR/src"
   AGENTS_REPO_DIR=$src_dir/$AGENTS_GIT_REPO
 
@@ -43,12 +44,16 @@ dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   export AGENTS_GIT_ACCOUNT
   export AGENTS_GIT_REPO
 
-  # This script runs non-interactively, so login/profile scripts that define the
-  # `nvm` shell function are not sourced. Load nvm here.
-  echo "Loading nvm..."
-  export NVM_DIR="${NVM_DIR:-/opt/nvm}"
-  # shellcheck disable=SC1091
-  [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+  # With an Azure DevOps PAT set, install the az CLI + devops extension so
+  # Claude can push and open PRs. The az devops commands authenticate via the
+  # AZURE_DEVOPS_EXT_PAT env var, so no extra login step is needed.
+  if [ -n "${AZURE_DEVOPS_EXT_PAT:-}" ]; then
+    echo "Installing Azure CLI and devops extension..."
+    bash "$scripts_dir/install-az-devops.sh" &
+  fi &>"$scripts_dir/install-az-devops.log"
+
+  echo "Installing nvm script to ~/.local/bin/nvm..."
+  cp -p "$scripts_dir/nvm" ~/.local/bin/nvm
 
   echo "Running PROJECT.sh..."
   cd "$AGENTS_REPO_DIR" || exit
@@ -60,5 +65,6 @@ dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
   echo "Merging agent settings..."
   cd "$AGENTS_REPO_DIR" || exit
-  bash "$session_start_dir/merge-agent-settings/merge-agent-settings.sh"
+  bash "$scripts_dir/merge-agent-settings.sh"
+
 ) &>"$dir/session-start.log"
