@@ -26,6 +26,17 @@ here. These edits must land on a **new branch, named after this Claude Code
 session** — never commit them directly to the branch the clone checked out
 (e.g. `master`/`main`). Open a PR from that branch as usual.
 
+### Azure DevOps PRs
+
+When the repo lives on Azure DevOps (`AZURE_DEVOPS_EXT_PAT` is set), the
+session-start hook installs the `az` CLI and its `azure-devops` extension **in
+the background**, so they may not be ready yet early in the session. Use
+`az repos pr create` to open the PR. If `az` is missing or the extension errors
+out, the install is probably still running — wait a bit and retry; check
+[.claude/hooks/session-start/scripts/install-az-devops.log](.claude/hooks/session-start/scripts/install-az-devops.log)
+for progress. `git push` itself does not depend on `az` (it authenticates via
+the PAT in the remote URL), so push first, then create the PR once `az` is up.
+
 <!-- BEGIN MERGED AGENT INSTRUCTIONS (auto-generated, do not edit) -->
 
 ## From merkatordev/GeoWEP (root)

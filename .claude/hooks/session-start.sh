@@ -45,6 +45,14 @@ dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   export AGENTS_GIT_ACCOUNT
   export AGENTS_GIT_REPO
 
+  # With an Azure DevOps PAT set, install the az CLI + devops extension so
+  # Claude can push and open PRs. The az devops commands authenticate via the
+  # AZURE_DEVOPS_EXT_PAT env var, so no extra login step is needed.
+  if [ -n "${AZURE_DEVOPS_EXT_PAT:-}" ]; then
+    echo "Installing Azure CLI and devops extension..."
+    bash "$scripts_dir/install-az-devops.sh" &
+  fi &>"$scripts_dir/install-az-devops.log"
+
   echo "Installing nvm script to ~/.local/bin/nvm..."
   cp -p "$scripts_dir/nvm" ~/.local/bin/nvm
 
@@ -59,4 +67,5 @@ dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   echo "Merging agent settings..."
   cd "$AGENTS_REPO_DIR" || exit
   bash "$scripts_dir/merge-agent-settings.sh"
+
 ) &>"$dir/session-start.log"
