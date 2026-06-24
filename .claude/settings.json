@@ -1,27 +1,4 @@
 {
-  "enabledPlugins": {
-    "frontend-design@claude-plugins-official": true,
-    "playwright@claude-plugins-official": true
-  },
-  "mcpServers": {
-    "playwright": {
-      "command": "npx",
-      "args": [
-        "@playwright/mcp@latest",
-        "--browser",
-        "chromium",
-        "--ignore-https-errors"
-      ]
-    },
-    "angular-cli": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@angular/cli",
-        "mcp"
-      ]
-    }
-  },
   "hooks": {
     "SessionStart": [
       {
