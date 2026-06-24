@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Mirror agent settings and instructions from the cloned source project repo
 # (its root, plus an optional monorepo component dir layered on top) INTO the
-# agents repo at $CLAUDE_PROJECT_DIR, then commit and push to the current branch.
+# agents repo at $CLAUDE_PROJECT_DIR, then commit and push to the project's
+# settings branch (derived from the project identity — see section 8).
 #
 # Invoked by session-start.sh with cwd = the source clone root. Environment
 # provided by the parent:
@@ -34,13 +35,16 @@ cleanup() {
 trap cleanup EXIT
 
 log() { printf 'merge-agent-settings: %s\n' "$*" >&2; }
-die() { log "error: $*"; exit 1; }
+die() {
+  log "error: $*"
+  exit 1
+}
 
 # --- 1. validate ------------------------------------------------------------
 for v in AGENTS_REPO_DIR CLAUDE_PROJECT_DIR AGENTS_GIT_ACCOUNT AGENTS_GIT_REPO; do
   [ -n "${!v:-}" ] || die "$v is not set"
 done
-[ -d "$AGENTS_REPO_DIR" ]    || die "AGENTS_REPO_DIR does not exist: $AGENTS_REPO_DIR"
+[ -d "$AGENTS_REPO_DIR" ] || die "AGENTS_REPO_DIR does not exist: $AGENTS_REPO_DIR"
 [ -d "$CLAUDE_PROJECT_DIR" ] || die "CLAUDE_PROJECT_DIR does not exist: $CLAUDE_PROJECT_DIR"
 
 DEST="$CLAUDE_PROJECT_DIR"
@@ -50,17 +54,17 @@ repo_real="$(realpath "$AGENTS_REPO_DIR")"
 comp_real="$(realpath "$AGENTS_COMPONENT_DIR")"
 
 # --- 2. source layers (root, optionally + component) ------------------------
-SRC_LAYERS=( "$AGENTS_REPO_DIR" )
-SRC_LABELS=( "root" )
+SRC_LAYERS=("$AGENTS_REPO_DIR")
+SRC_LABELS=("root")
 COMPONENT_REL=""
 if [ "$comp_real" != "$repo_real" ]; then
   case "$comp_real/" in
-    "$repo_real"/*) : ;;
-    *) die "component dir escapes repo dir: $AGENTS_COMPONENT_DIR" ;;
+  "$repo_real"/*) : ;;
+  *) die "component dir escapes repo dir: $AGENTS_COMPONENT_DIR" ;;
   esac
   COMPONENT_REL="$(realpath --relative-to="$AGENTS_REPO_DIR" "$AGENTS_COMPONENT_DIR")"
-  SRC_LAYERS+=( "$AGENTS_COMPONENT_DIR" )
-  SRC_LABELS+=( "component: $COMPONENT_REL" )
+  SRC_LAYERS+=("$AGENTS_COMPONENT_DIR")
+  SRC_LABELS+=("component: $COMPONENT_REL")
 fi
 
 SRC_SHA="$(git -C "$AGENTS_REPO_DIR" rev-parse --short HEAD 2>/dev/null || echo unknown)"
@@ -98,17 +102,18 @@ mirror_settings() {
   local inputs=() merged scaffold
   mapfile -t inputs < <(json_inputs "$rel")
 
-  merged="$(mktemp)"; TMPFILES+=("$merged")
+  merged="$(mktemp)"
+  TMPFILES+=("$merged")
   if [ ${#inputs[@]} -gt 0 ]; then
-    jq -n "$DEEPMERGE" "${inputs[@]}" > "$merged"
+    jq -n "$DEEPMERGE" "${inputs[@]}" >"$merged"
   else
-    echo '{}' > "$merged"
+    echo '{}' >"$merged"
   fi
 
   # Scaffolding = SessionStart entries that invoke session-start.sh, taken from
   # the committed base (deterministic; immune to a prior partial run).
-  scaffold="$(git -C "$DEST" show "HEAD:$rel" 2>/dev/null \
-    | jq -c '[ .hooks.SessionStart[]?
+  scaffold="$(git -C "$DEST" show "HEAD:$rel" 2>/dev/null |
+    jq -c '[ .hooks.SessionStart[]?
                | select(any(.hooks[]?.command // ""; test("session-start\\.sh"))) ]' 2>/dev/null)"
   [ -n "$scaffold" ] || scaffold='[]'
 
@@ -121,7 +126,7 @@ mirror_settings() {
       )
     | (if (.hooks.SessionStart | length) == 0 then del(.hooks.SessionStart) else . end)
     | (if (.hooks | length) == 0 then del(.hooks) else . end)
-  ' "$merged" > "$out"
+  ' "$merged" >"$out"
 }
 
 # --- 4. .mcp.json (mirror; per-server last-layer-wins so args do not double) -
@@ -130,10 +135,10 @@ mirror_mcp() {
   local inputs=()
   mapfile -t inputs < <(json_inputs "$rel")
   if [ ${#inputs[@]} -eq 0 ]; then
-    if [ -e "$out" ]; then rm -f "$out"; fi   # mirror: source dropped it -> remove
+    if [ -e "$out" ]; then rm -f "$out"; fi # mirror: source dropped it -> remove
     return 0
   fi
-  jq -s 'reduce .[] as $o ({}; . * $o)' "${inputs[@]}" > "$out"
+  jq -s 'reduce .[] as $o ({}; . * $o)' "${inputs[@]}" >"$out"
 }
 
 # --- 5. relative-path referenced command / executable files -----------------
@@ -176,17 +181,18 @@ copy_referenced_files() {
     while IFS= read -r tok; do
       [ -n "$tok" ] || continue
       case "$tok" in
-        '$'*)       continue ;;   # runtime variable (e.g. the scaffolding hook)
-        /*|'~'*)    continue ;;   # absolute path — not portable
-        */*)        : ;;          # relative path with a slash — candidate
-        *)          continue ;;   # bare word / flag / PATH command
+      '$'*) continue ;;      # runtime variable (e.g. the scaffolding hook)
+      /* | '~'*) continue ;; # absolute path — not portable
+      */*) : ;;              # relative path with a slash — candidate
+      *) continue ;;         # bare word / flag / PATH command
       esac
       rel="${tok#./}"
       case "$rel" in
-        .claude/hooks/session-start.sh|.claude/settings.json|.mcp.json \
-          | .claude/hooks/session-start/*)
-          log "warn: refused to overwrite scaffolding via reference: $rel"
-          continue ;;
+      .claude/hooks/session-start.sh | .claude/settings.json | .mcp.json | \
+        .claude/hooks/session-start/*)
+        log "warn: refused to overwrite scaffolding via reference: $rel"
+        continue
+        ;;
       esac
       src="$layer/$rel"
       [ -f "$src" ] || continue
@@ -194,26 +200,27 @@ copy_referenced_files() {
       mkdir -p "$(dirname "$dst")"
       rsync -a "$src" "$dst"
       chmod +x "$dst" 2>/dev/null || true
-    done < <(collect_refs "$layer")   # root then component: component wins
+    done < <(collect_refs "$layer") # root then component: component wins
   done
 }
 
 # --- 6. directory mirror (union of layers, with deletions) ------------------
 mirror_dir() { # mirror_dir <relpath>
   local rel="$1" layer staging out copied=false
-  staging="$(mktemp -d)"; TMPDIRS+=("$staging")
+  staging="$(mktemp -d)"
+  TMPDIRS+=("$staging")
   for layer in "${SRC_LAYERS[@]}"; do
     if [ -d "$layer/$rel" ]; then
-      rsync -a "$layer/$rel/" "$staging/"   # component overlays root
+      rsync -a "$layer/$rel/" "$staging/" # component overlays root
       copied=true
     fi
   done
   out="$DEST/$rel"
   if [ "$copied" = true ]; then
     mkdir -p "$out"
-    rsync -a --delete "$staging/" "$out/"   # exact union; prune stale files
+    rsync -a --delete "$staging/" "$out/" # exact union; prune stale files
   else
-    if [ -e "$out" ]; then rm -rf "$out"; fi   # mirror: source dropped it
+    if [ -e "$out" ]; then rm -rf "$out"; fi # mirror: source dropped it
   fi
 }
 
@@ -223,11 +230,12 @@ CLAUDE_END='<!-- END MERGED AGENT INSTRUCTIONS -->'
 
 merge_claude_md() {
   local out="$DEST/CLAUDE.md" base body i layer label f
-  base="$(mktemp)"; TMPFILES+=("$base")
-  : > "$base"
+  base="$(mktemp)"
+  TMPFILES+=("$base")
+  : >"$base"
   if [ -f "$out" ]; then
     CLAUDE_BEGIN="$CLAUDE_BEGIN" CLAUDE_END="$CLAUDE_END" \
-      python3 - "$out" > "$base" <<'PY'
+      python3 - "$out" >"$base" <<'PY'
 import os, sys
 begin, end = os.environ["CLAUDE_BEGIN"], os.environ["CLAUDE_END"]
 text = open(sys.argv[1], encoding="utf-8").read()
@@ -242,23 +250,33 @@ sys.stdout.write(text)
 PY
   fi
 
-  body="$(mktemp)"; TMPFILES+=("$body")
-  : > "$body"
+  body="$(mktemp)"
+  TMPFILES+=("$body")
+  : >"$body"
   for i in "${!SRC_LAYERS[@]}"; do
-    layer="${SRC_LAYERS[$i]}"; label="${SRC_LABELS[$i]}"
+    layer="${SRC_LAYERS[$i]}"
+    label="${SRC_LABELS[$i]}"
     f="$layer/CLAUDE.md"
     [ -s "$f" ] || continue
-    { printf '## From %s/%s (%s)\n\n' "$AGENTS_GIT_ACCOUNT" "$AGENTS_GIT_REPO" "$label"
-      cat "$f"; printf '\n'; } >> "$body"
+    {
+      printf '## From %s/%s (%s)\n\n' "$AGENTS_GIT_ACCOUNT" "$AGENTS_GIT_REPO" "$label"
+      cat "$f"
+      printf '\n'
+    } >>"$body"
   done
 
   if [ -s "$body" ]; then
-    { if [ -s "$base" ]; then cat "$base"; printf '\n'; fi
+    {
+      if [ -s "$base" ]; then
+        cat "$base"
+        printf '\n'
+      fi
       printf '%s\n\n' "$CLAUDE_BEGIN"
       cat "$body"
-      printf '%s\n' "$CLAUDE_END"; } > "$out"
+      printf '%s\n' "$CLAUDE_END"
+    } >"$out"
   elif [ -s "$base" ]; then
-    cat "$base" > "$out"
+    cat "$base" >"$out"
   else
     if [ -e "$out" ]; then rm -f "$out"; fi
   fi
@@ -273,8 +291,23 @@ mirror_dir .agents
 mirror_dir .github
 merge_claude_md
 
-# --- 8. commit + push to the current branch of the agents repo --------------
-branch="$(git -C "$DEST" rev-parse --abbrev-ref HEAD)"
+# --- 8. commit + push to the project's settings branch ----------------------
+# The mirrored settings must land on a STABLE per-project branch so any future
+# web session started from it picks them up. Do NOT push to whatever branch the
+# session is currently checked out on: the web harness starts sessions on
+# ephemeral claude/<id> branches, which are the wrong home for shared settings
+# (and "the branch this session started from" is unrecoverable from git once
+# that branch gets its own commits, e.g. on resume).
+#
+# Derive the target from the project identity (repo + optional component) so it
+# is independent of the current checkout: GeoWEP + docker/ng -> geowep/ng.
+# AGENTS_SETTINGS_BRANCH overrides it when the convention does not fit.
+target_branch="${AGENTS_SETTINGS_BRANCH:-}"
+if [ -z "$target_branch" ]; then
+  target_branch="${AGENTS_GIT_REPO,,}"
+  [ -n "$COMPONENT_REL" ] && target_branch="$target_branch/${COMPONENT_REL##*/}"
+fi
+
 git -C "$DEST" add -A
 if git -C "$DEST" diff --cached --quiet; then
   log "no changes to commit"
@@ -289,5 +322,7 @@ git -C "$DEST" \
   -c user.name="agents session-start" \
   -c user.email="wouter.scherphof@merkator.com" \
   commit -m "$msg" >&2
-git -C "$DEST" push origin "HEAD:$branch" >&2
-log "committed and pushed to $branch"
+# Plain (non-forced) push: a fast-forward onto the settings branch succeeds; if
+# that branch has diverged it fails loudly rather than clobbering other work.
+git -C "$DEST" push origin "HEAD:$target_branch" >&2
+log "committed and pushed to $target_branch"
