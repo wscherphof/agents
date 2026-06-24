@@ -13,11 +13,12 @@ separate:
 
 ## This repo (`agents`, workspace root)
 
-Holds the agent scaffolding and the mirrored settings/instructions. Commit and
-push every change here — including the auto-merged settings — **directly to the
-branch this session started from**. Do **not** create a `claude/...` branch for
-it. The settings are kept on this branch on purpose, so they are immediately
-available to any new Claude Code Web session started from the same branch.
+Holds the agent scaffolding and the mirrored settings/instructions. The
+session-start hook commits the auto-merged settings and pushes them to the
+project's **settings branch** — a stable per-project branch derived from the
+repo name (e.g. `geowep`, or `geowep/ng` for a monorepo component), overridable
+via `AGENTS_SETTINGS_BRANCH` — so they are immediately available to future
+Claude Code Web sessions for this project.
 
 ## The project repo (cloned under [src/](src/))
 
