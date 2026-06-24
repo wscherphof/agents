@@ -9,11 +9,12 @@ export NVM_DIR="${NVM_DIR:-/opt/nvm}"
 # shellcheck disable=SC1091
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 
-set -x
-
 NODE_VERSION=24.16.0
+echo "Installing and using Node.js version $NODE_VERSION..."
 nvm install $NODE_VERSION
 nvm use $NODE_VERSION
+
+set -x
 
 npm ci
 
