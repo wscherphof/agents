@@ -1,3 +1,31 @@
+# Two repos, two git workflows
+
+**This section applies only when `$CLAUDE_CODE_REMOTE` is `'true'`** — i.e. in a
+Claude Code Web / remote session. In a local session (where `CLAUDE_CODE_REMOTE`
+is unset) the session-start hook does not run, there is no [src/](src/) clone,
+and this whole arrangement does not apply — treat this as an ordinary repo.
+
+In a remote session, a Claude Code Web session starts in **this** repo (the
+`agents` repo, at the workspace root). The session-start hook clones the
+**actual project repo** into [src/](src/) and mirrors its agent
+settings/instructions back into this repo. Keep the two repos' git workflows
+separate:
+
+## This repo (`agents`, workspace root)
+
+Holds the agent scaffolding and the mirrored settings/instructions. Commit and
+push every change here — including the auto-merged settings — **directly to the
+branch this session started from**. Do **not** create a `claude/...` branch for
+it. The settings are kept on this branch on purpose, so they are immediately
+available to any new Claude Code Web session started from the same branch.
+
+## The project repo (cloned under [src/](src/))
+
+This is the codebase we are actually coding on. Make all project code edits
+here. These edits must land on a **new branch, named after this Claude Code
+session** — never commit them directly to the branch the clone checked out
+(e.g. `master`/`main`). Open a PR from that branch as usual.
+
 <!-- BEGIN MERGED AGENT INSTRUCTIONS (auto-generated, do not edit) -->
 
 ## From merkatordev/GeoWEP (root)
