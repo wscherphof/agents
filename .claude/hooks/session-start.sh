@@ -43,12 +43,22 @@ dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   export AGENTS_GIT_ACCOUNT
   export AGENTS_GIT_REPO
 
+  # This script runs non-interactively, so login/profile scripts that define the
+  # `nvm` shell function are not sourced. Load nvm here.
+  echo "Loading nvm..."
+  export NVM_DIR="${NVM_DIR:-/opt/nvm}"
+  # shellcheck disable=SC1091
+  [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+  echo "Running PROJECT.sh..."
   cd "$AGENTS_REPO_DIR" || exit
   bash "$session_start_dir/PROJECT.sh"
 
+  echo "Running COMPONENT.sh..."
   cd "$AGENTS_COMPONENT_DIR" || exit
   bash "$session_start_dir/COMPONENT.sh"
 
+  echo "Merging agent settings..."
   cd "$AGENTS_REPO_DIR" || exit
   bash "$session_start_dir/merge-agent-settings/merge-agent-settings.sh"
 ) &>"$dir/session-start.log"
