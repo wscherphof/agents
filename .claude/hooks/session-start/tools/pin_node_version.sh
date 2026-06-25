@@ -59,10 +59,28 @@ retry() {
 
 # This script runs non-interactively, so login/profile scripts that define the
 # `nvm` shell function are not sourced. Load nvm here.
+#
+# nvm.sh is a large script that is NOT safe to source under `set -euo pipefail`:
+# it inspects the *sourcing* shell's positional parameters, so with our "$1"
+# (the target version) set it runs `nvm_auto use` as a side effect, and in a
+# fresh container that internal path can return non-zero and trip `set -e` —
+# aborting this script before the install step ever runs (the original
+# silent-pin-failure: the hook died right after "Loading nvm..." with the
+# system Node still in place). Source it defensively: clear positional params
+# so nvm doesn't treat "$1" as an `nvm use` request, and relax `set -eu` for the
+# duration of the source only.
 echo "Loading nvm..."
 export NVM_DIR="${NVM_DIR:-/opt/nvm}"
-# shellcheck disable=SC1091
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+if [ -s "$NVM_DIR/nvm.sh" ]; then
+    set -- # hide our positional params from nvm's auto-use side effect
+    set +eu
+    # shellcheck disable=SC1091
+    \. "$NVM_DIR/nvm.sh"
+    set -eu
+else
+    echo "ERROR: nvm not found at $NVM_DIR/nvm.sh; cannot pin Node." >&2
+    exit 1
+fi
 
 echo "Installing and using Node.js version $NODE_VERSION..."
 if ! retry 4 2 nvm install "$NODE_VERSION"; then
