@@ -23,9 +23,23 @@ Claude Code Web sessions for this project.
 ## The project repo (cloned under [src/](src/))
 
 This is the codebase we are actually coding on. Make all project code edits
-here. These edits must land on a **new branch, named after this Claude Code
-session** — never commit them directly to the branch the clone checked out
-(e.g. `master`/`main`). Open a PR from that branch as usual.
+here.
+
+Because the remote session runs in an ephemeral container that is discarded
+when the session ends, **only pushed commits survive** — a local commit that is
+never pushed is lost (Claude Code Web does not auto-push; each session is a
+fresh clone from the remote). Always push after committing.
+
+There are two common routes:
+
+- **Starting fresh work.** The edits must land on a **new branch, named after
+  this Claude Code session** — never commit them directly to the branch the
+  clone checked out (e.g. `master`/`main`). Open a PR from that branch as usual.
+- **Continuing work on an existing feature branch.** Just as common: a new
+  session is started to pick up an existing branch. In that case **check out
+  that branch** (do not create a new one), and commit and push directly to it.
+  There may already be a PR for the branch — if so, **never suggest creating a
+  new PR**; a `git push` simply adds the new commits to the existing PR.
 
 ### Azure DevOps PRs
 

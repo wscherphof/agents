@@ -1,0 +1,442 @@
+<!-- Blog post about the `agents` launcher repo.
+     Inline styles only — paste the contents of this file into a WordPress
+     "Custom HTML" block. No <html>/<head>/<body> wrapper on purpose. -->
+<article
+  style="
+    max-width: 740px;
+    margin: 0 auto;
+    padding: 0 16px;
+    font-family:
+      -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto,
+      Helvetica, Arial, sans-serif;
+    font-size: 18px;
+    line-height: 1.7;
+    color: #1a1a1a;
+  "
+>
+  <header style="margin: 0 0 32px">
+    <p
+      style="
+        margin: 0 0 12px;
+        font-size: 13px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #6b7280;
+      "
+    >
+      AI coding · Tooling
+    </p>
+    <h1
+      style="
+        margin: 0 0 16px;
+        font-size: 38px;
+        line-height: 1.2;
+        font-weight: 700;
+        color: #111827;
+      "
+    >
+      Running cloud coding agents against repos the cloud can't reach
+    </h1>
+    <p
+      style="
+        margin: 0 0 24px;
+        font-size: 20px;
+        line-height: 1.5;
+        color: #4b5563;
+      "
+    >
+      A tiny launcher repo that lets Claude Code Web sessions work on Azure
+      DevOps projects — and any other repo Anthropic can't see directly.
+    </p>
+    <a
+      href="https://github.com/wscherphof/agents"
+      target="_blank"
+      rel="noopener noreferrer"
+      style="
+        display: inline-block;
+        padding: 12px 22px;
+        background: #111827;
+        color: #ffffff;
+        font-size: 16px;
+        font-weight: 600;
+        text-decoration: none;
+        border-radius: 8px;
+      "
+      >View the repo on GitHub →</a
+    >
+  </header>
+
+  <p style="margin: 0 0 20px">
+    Claude Code Web is great when it works on your repo. The catch: Anthropic
+    ships a GitHub App that lets cloud sessions reach GitHub repos, but there's
+    no equivalent for Azure DevOps. If your code lives on ADO, you're locked out
+    of the browser-based agent experience.
+  </p>
+
+  <p style="margin: 0 0 20px">
+    The <strong>agents</strong> repo is a small, clever workaround. It's not a
+    project codebase — it's a <em>launcher</em> you start a Claude Code Web
+    session <em>from</em>. It lives on GitHub (where Web sessions work), and on
+    startup it pulls your real project repo into reach. The result: full cloud
+    agent sessions against repos Anthropic can't otherwise touch.
+  </p>
+
+  <h2
+    style="
+      margin: 40px 0 14px;
+      font-size: 26px;
+      font-weight: 700;
+      color: #111827;
+    "
+  >
+    The core trick
+  </h2>
+
+  <p style="margin: 0 0 20px">
+    When a session boots on a branch of the launcher, a
+    <strong>session-start hook</strong> does the heavy lifting:
+  </p>
+
+  <ul style="margin: 0 0 20px; padding-left: 24px">
+    <li style="margin: 0 0 10px">
+      It reads which project to target from variables at the top of the hook.
+    </li>
+    <li style="margin: 0 0 10px">
+      It clones (or fast-forward pulls) that project repo into a git-ignored
+      <code
+        style="
+          background: #f3f4f6;
+          padding: 2px 6px;
+          border-radius: 4px;
+          font-size: 15px;
+        "
+        >src/</code
+      >
+      folder, authenticating with a Personal Access Token from the session
+      environment.
+    </li>
+    <li style="margin: 0 0 10px">
+      It runs per-project setup steps — installing dependencies, pinning
+      versions, and on Azure DevOps, installing the
+      <code
+        style="
+          background: #f3f4f6;
+          padding: 2px 6px;
+          border-radius: 4px;
+          font-size: 15px;
+        "
+        >az</code
+      >
+      CLI in the background so the agent can open PRs.
+    </li>
+    <li style="margin: 0 0 10px">
+      It mirrors the project's agent configuration back into the launcher.
+    </li>
+  </ul>
+
+  <p style="margin: 0 0 20px">
+    That last step solves a subtle problem. Claude Web only reads agent config —
+    <code
+      style="
+        background: #f3f4f6;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 15px;
+      "
+      >CLAUDE.md</code
+    >,
+    <code
+      style="
+        background: #f3f4f6;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 15px;
+      "
+      >.claude/</code
+    >, MCP servers, custom agents — from the launcher repo it boots into,
+    <em>not</em> from the cloned project. So the hook syncs the project's config
+    into the launcher, then commits and pushes it to a stable per-project
+    <strong>settings branch</strong>. The next session for that project picks it
+    all up automatically, and the configuration accumulates and improves over
+    time.
+  </p>
+
+  <blockquote
+    style="
+      margin: 28px 0;
+      padding: 16px 22px;
+      border-left: 4px solid #6366f1;
+      background: #f5f5ff;
+      color: #374151;
+      font-size: 18px;
+      border-radius: 0 8px 8px 0;
+    "
+  >
+    The big idea: the launcher lives where cloud sessions <em>can</em> run, and
+    reaches out to where your code actually <em>is</em>.
+  </blockquote>
+
+  <h2
+    style="
+      margin: 40px 0 14px;
+      font-size: 26px;
+      font-weight: 700;
+      color: #111827;
+    "
+  >
+    A branch per project
+  </h2>
+
+  <p style="margin: 0 0 20px">
+    You pick which project a session drives simply by choosing a branch in the
+    Claude Code Web branch picker. The branches form a tidy hierarchy:
+  </p>
+
+  <pre
+    style="
+      margin: 0 0 20px;
+      padding: 18px;
+      background: #0f172a;
+      color: #e2e8f0;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 14px;
+      line-height: 1.6;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    "
+  >
+main
+├── geowep              # whole GeoWEP repo
+│   └── geowep/ng       # GeoWEP "ng" component
+└── &lt;next-project&gt;
+    └── &lt;next-project&gt;/&lt;component&gt;</pre
+  >
+
+  <ul style="margin: 0 0 20px; padding-left: 24px">
+    <li style="margin: 0 0 10px">
+      <strong>main</strong> — the base scaffolding template, tied to no project.
+    </li>
+    <li style="margin: 0 0 10px">
+      <strong>Project branch</strong> (e.g.
+      <code
+        style="
+          background: #f3f4f6;
+          padding: 2px 6px;
+          border-radius: 4px;
+          font-size: 15px;
+        "
+        >geowep</code
+      >) — configured for a whole repo, carrying its mirrored root settings.
+    </li>
+    <li style="margin: 0 0 10px">
+      <strong>Component branch</strong> (e.g.
+      <code
+        style="
+          background: #f3f4f6;
+          padding: 2px 6px;
+          border-radius: 4px;
+          font-size: 15px;
+        "
+        >geowep/ng</code
+      >) — configured for one component of a monorepo, with that component's
+      settings layered on top.
+    </li>
+  </ul>
+
+  <h2
+    style="
+      margin: 40px 0 14px;
+      font-size: 26px;
+      font-weight: 700;
+      color: #111827;
+    "
+  >
+    Nothing to install
+  </h2>
+
+  <p style="margin: 0 0 20px">
+    There's no local setup. You <strong>fork the repo</strong> on GitHub and run
+    everything from your fork. Project variables, mirrored settings, and PATs
+    all live there — nothing touches the upstream repo. To pick up improvements
+    later, you sync your fork's
+    <code
+      style="
+        background: #f3f4f6;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 15px;
+      "
+      >main</code
+    >
+    and merge it down into your project branches, so every project gets launcher
+    updates without losing its own config.
+  </p>
+
+  <p style="margin: 0 0 20px">
+    The one piece of configuration you do supply is a Personal Access Token, set
+    in the cloud Environment as
+    <code
+      style="
+        background: #f3f4f6;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 15px;
+      "
+      >GITHUB_PERSONAL_ACCESS_TOKEN</code
+    >
+    or
+    <code
+      style="
+        background: #f3f4f6;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 15px;
+      "
+      >AZURE_DEVOPS_EXT_PAT</code
+    >. Since the token scopes access to a project, the usual pattern is one
+    Environment per project, selected alongside the project's branch when you
+    start a session.
+  </p>
+
+  <h2
+    style="
+      margin: 40px 0 14px;
+      font-size: 26px;
+      font-weight: 700;
+      color: #111827;
+    "
+  >
+    Two repos, two git workflows
+  </h2>
+
+  <p style="margin: 0 0 20px">
+    A session juggles two repos at once, and the trick to staying sane is
+    keeping their git workflows separate:
+  </p>
+
+  <div style="overflow-x: auto; margin: 0 0 20px">
+    <table style="width: 100%; border-collapse: collapse; font-size: 15px">
+      <thead>
+        <tr style="background: #f3f4f6">
+          <th
+            style="
+              padding: 12px;
+              text-align: left;
+              border: 1px solid #e5e7eb;
+              font-weight: 600;
+            "
+          ></th>
+          <th
+            style="
+              padding: 12px;
+              text-align: left;
+              border: 1px solid #e5e7eb;
+              font-weight: 600;
+            "
+          >
+            The launcher
+          </th>
+          <th
+            style="
+              padding: 12px;
+              text-align: left;
+              border: 1px solid #e5e7eb;
+              font-weight: 600;
+            "
+          >
+            The project repo (src/)
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td
+            style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600"
+          >
+            Holds
+          </td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb">
+            Agent scaffolding + mirrored settings
+          </td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb">
+            The actual code you're working on
+          </td>
+        </tr>
+        <tr style="background: #fafafa">
+          <td
+            style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600"
+          >
+            Edits land on
+          </td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb">
+            The settings branch — pushed automatically by the hook
+          </td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb">
+            A new session branch, or an existing feature branch
+          </td>
+        </tr>
+        <tr>
+          <td
+            style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600"
+          >
+            PRs
+          </td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb">
+            n/a — settings auto-push
+          </td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb">
+            Opened from the session branch, or pushed onto an existing one
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p style="margin: 0 0 20px">
+    The agent handles the project-repo branching and PR itself. As a developer,
+    your starting prompt decides the route: describe a new bug or feature and it
+    spins up a fresh branch; ask it to continue an existing feature branch and
+    it checks that out and pushes straight onto it. Either way, you just review
+    and merge the resulting PR.
+  </p>
+
+  <p style="margin: 0 0 20px">
+    One thing worth remembering: cloud sessions run in ephemeral containers, so
+    <strong>only pushed commits survive</strong>. The agent is instructed to
+    always push after committing — but it's a useful detail to keep in mind for
+    how the whole system stays durable across one-shot sessions.
+  </p>
+
+  <h2
+    style="
+      margin: 40px 0 14px;
+      font-size: 26px;
+      font-weight: 700;
+      color: #111827;
+    "
+  >
+    Why it matters
+  </h2>
+
+  <p style="margin: 0 0 20px">
+    It's a small repo with an outsized payoff. By treating a GitHub-hosted
+    launcher as a bridge, it brings the full Claude Code Web experience — cloud
+    sessions, automated PRs, accumulating per-project agent config — to
+    codebases that the browser agent couldn't otherwise reach. If your team's
+    code lives on Azure DevOps and you've been watching cloud coding agents from
+    the sidelines, this is the on-ramp.
+  </p>
+
+  <hr style="margin: 40px 0 24px; border: 0; border-top: 1px solid #e5e7eb" />
+
+  <p style="margin: 0; font-size: 15px; color: #6b7280">
+    Explore the project on GitHub:
+    <a
+      href="https://github.com/wscherphof/agents"
+      target="_blank"
+      rel="noopener noreferrer"
+      style="color: #4f46e5; text-decoration: none"
+      >github.com/wscherphof/agents</a
+    >
+  </p>
+</article>
