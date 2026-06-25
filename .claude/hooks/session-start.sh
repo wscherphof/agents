@@ -15,10 +15,10 @@ AGENTS_COMPONENT_DIR=""
 # set to construct the repo URL for cloning.
 
 [ -n "${GITHUB_PERSONAL_ACCESS_TOKEN:-}" ] &&
-  agents_repo_url=https://${GITHUB_PERSONAL_ACCESS_TOKEN:-}@github.com/$AGENTS_GIT_ACCOUNT/$AGENTS_GIT_REPO.git
+  repo_url=https://${GITHUB_PERSONAL_ACCESS_TOKEN:-}@github.com/$AGENTS_GIT_ACCOUNT/$AGENTS_GIT_REPO.git
 
 [ -n "${AZURE_DEVOPS_EXT_PAT:-}" ] &&
-  agents_repo_url=https://${AZURE_DEVOPS_EXT_PAT:-}@dev.azure.com/$AGENTS_GIT_ACCOUNT/_git/$AGENTS_GIT_REPO
+  repo_url=https://${AZURE_DEVOPS_EXT_PAT:-}@dev.azure.com/$AGENTS_GIT_ACCOUNT/_git/$AGENTS_GIT_REPO
 
 # Child scripts are setup steps. Send their stdout to stderr so it stays out of
 # Claude's context (SessionStart adds hook stdout to context) while remaining
@@ -37,7 +37,7 @@ dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   if [ -d "$AGENTS_REPO_DIR/.git" ]; then
     git -C "$AGENTS_REPO_DIR" pull --ff-only
   else
-    git clone "$agents_repo_url" "$AGENTS_REPO_DIR"
+    git clone "$repo_url" "$AGENTS_REPO_DIR"
   fi
 
   AGENTS_COMPONENT_DIR=$(realpath "$AGENTS_REPO_DIR/${AGENTS_COMPONENT_DIR:-.}")
