@@ -50,6 +50,22 @@ When a Claude Code Web session starts on a branch of this repo, the
    own scaffolding is re-injected afterward so regeneration keeps working. A run
    with no changes produces no commit.
 
+## Fork it — there's nothing to install
+
+You don't install anything and there's no local setup. You **fork this repo** on
+GitHub, and your fork is where you run everything from: Claude Code Web sessions
+start from branches in **your** fork, each branch carrying its own
+project/component configuration (see below) and selecting its own
+project-specific [Environment](#set-your-pat-in-the-cloud-environment). The
+project variables, mirrored settings, and PATs all live in your fork — nothing
+touches this upstream repo.
+
+To pick up future improvements from upstream,
+[**sync your fork's `main`**](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/syncing-a-fork),
+then propagate from there into your project and component branches (merge `main`
+into each). That way every project gets launcher updates without losing its
+project-specific config.
+
 ## Branch hierarchy: pick the project (and component) when you start
 
 You choose **which project a session drives by choosing a branch** in the Claude
