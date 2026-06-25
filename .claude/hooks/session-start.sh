@@ -26,8 +26,8 @@ AGENTS_COMPONENT_DIR=""
 dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 (
   echo "• Setting up Claude git user..."
-  git config user.email noreply@anthropic.com
-  git config user.name Claude
+  git config --global user.email noreply@anthropic.com
+  git config --global user.name Claude
 
   src_dir="$CLAUDE_PROJECT_DIR/src"
   AGENTS_REPO_DIR=$src_dir/$AGENTS_GIT_REPO
