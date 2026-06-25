@@ -108,9 +108,19 @@ also spelled out in [CLAUDE.md](CLAUDE.md)):
 |                  | This repo (`agents`, workspace root)                                            | The project repo ([src/](src/))                                 |
 | ---------------- | ------------------------------------------------------------------------------- | --------------------------------------------------------------- |
 | Holds            | Agent scaffolding + mirrored settings                                           | The actual code you're working on                               |
-| Where edits land | The project's **settings branch**, committed & pushed automatically by the hook | A **new branch named after the session**, never `main`/`master` |
-| PRs              | n/a (settings are auto-pushed)                                                  | Open a PR from the session branch as usual                      |
+| Where edits land | The project's **settings branch**, committed & pushed automatically by the hook | A **new branch named after the session**, or an existing feature branch |
+| PRs              | n/a (settings are auto-pushed)                                                  | Open a PR from the session branch, or push onto an existing one         |
 
 The agent handles the project-repo branch and PR itself per the rules in
 [CLAUDE.md](CLAUDE.md); as a developer you just review and merge the resulting
 PR.
+
+Your **starting prompt** decides which of the two project-repo routes applies:
+
+- **A new topic** — a bug to fix or a feature to build (e.g. "fix the legend
+  overflow on the print page") — starts fresh: the agent creates a **new branch
+  named after the session** and, optionally, opens a PR from it.
+- **Continuing an existing feature branch** — e.g. "work on the `map-print`
+  feature branch" — checks out that branch instead of creating one, and commits
+  and pushes directly to it. If it already has a PR, the push just adds to that
+  PR; no new one is created.
