@@ -23,7 +23,14 @@ Claude Code Web sessions for this project.
 ## The project repo (cloned under [src/](src/))
 
 This is the codebase we are actually coding on. Make all project code edits
-here. There are two common routes:
+here.
+
+Because the remote session runs in an ephemeral container that is discarded
+when the session ends, **only pushed commits survive** — a local commit that is
+never pushed is lost (Claude Code Web does not auto-push; each session is a
+fresh clone from the remote). Always push after committing.
+
+There are two common routes:
 
 - **Starting fresh work.** The edits must land on a **new branch, named after
   this Claude Code session** — never commit them directly to the branch the
