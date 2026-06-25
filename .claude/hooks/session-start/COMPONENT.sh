@@ -1,20 +1,8 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
+set -exuo pipefail
 
-# This script runs non-interactively, so login/profile scripts that define the
-# `nvm` shell function are not sourced. Load nvm here.
-echo "Loading nvm..."
-export NVM_DIR="${NVM_DIR:-/opt/nvm}"
-# shellcheck disable=SC1091
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-
-NODE_VERSION=24.16.0
-echo "Installing and using Node.js version $NODE_VERSION..."
-nvm install $NODE_VERSION
-nvm use $NODE_VERSION
-
-set -x
+"$AGENTS_TOOLS_DIR/pin_node_version.sh" 24.16.0
 
 npm ci
 
