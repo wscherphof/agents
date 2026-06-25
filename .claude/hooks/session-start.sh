@@ -25,14 +25,18 @@ AGENTS_COMPONENT_DIR=""
 # visible in the transcript and under --debug.
 dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 (
+  echo "• Setting up Claude git user..."
+  git config user.email noreply@anthropic.com
+  git config user.name Claude
+
   src_dir="$CLAUDE_PROJECT_DIR/src"
   AGENTS_REPO_DIR=$src_dir/$AGENTS_GIT_REPO
 
+  echo "Cloning $AGENTS_GIT_ACCOUNT/$AGENTS_GIT_REPO into $AGENTS_REPO_DIR..."
   mkdir -p "$src_dir"
   if [ -d "$AGENTS_REPO_DIR/.git" ]; then
     git -C "$AGENTS_REPO_DIR" pull --ff-only
   else
-    echo "Cloning $AGENTS_GIT_ACCOUNT/$AGENTS_GIT_REPO into $AGENTS_REPO_DIR"
     git clone "$agents_repo_url" "$AGENTS_REPO_DIR"
   fi
 
@@ -51,19 +55,19 @@ dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   # Claude can push and open PRs. The az devops commands authenticate via the
   # AZURE_DEVOPS_EXT_PAT env var, so no extra login step is needed.
   if [ -n "${AZURE_DEVOPS_EXT_PAT:-}" ]; then
-    echo "Installing Azure CLI and devops extension..."
+    echo "• Installing Azure CLI and devops extension..."
     bash "$scripts_dir/install-az-devops.sh" &
   fi &>"$scripts_dir/install-az-devops.log"
 
-  echo "Running PROJECT.sh..."
+  echo "• Running PROJECT.sh..."
   cd "$AGENTS_REPO_DIR" || exit
   bash "$session_start_dir/PROJECT.sh"
 
-  echo "Running COMPONENT.sh..."
+  echo "• Running COMPONENT.sh..."
   cd "$AGENTS_COMPONENT_DIR" || exit
   bash "$session_start_dir/COMPONENT.sh"
 
-  echo "Merging agent settings..."
+  echo "• Merging agent settings..."
   cd "$AGENTS_REPO_DIR" || exit
   bash "$scripts_dir/merge-agent-settings.sh"
 
