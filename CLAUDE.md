@@ -1,9 +1,20 @@
 # Two repos, two git workflows
 
-**This section applies only when `$CLAUDE_CODE_REMOTE` is `'true'`** — i.e. in a
-Claude Code Web / remote session. In a local session (where `CLAUDE_CODE_REMOTE`
-is unset) the session-start hook does not run, there is no [src/](src/) clone,
-and this whole arrangement does not apply — treat this as an ordinary repo.
+**This file applies only when both of these hold:** `$CLAUDE_CODE_REMOTE` is
+`'true'`, **and** the uncommented `AGENTS_GIT_REPO=` assignment in
+[.claude/hooks/session-start.sh](.claude/hooks/session-start.sh) is non-empty
+(the `# e.g. …` example comments don't count). Concretely:
+
+- **Locally** (`CLAUDE_CODE_REMOTE` unset): the session-start hook never runs,
+  there is no [src/](src/) clone — treat this as an ordinary repo and ignore
+  everything below.
+- **On the template branch** (`main`), where `AGENTS_GIT_ACCOUNT`/
+  `AGENTS_GIT_REPO` are blank: no project is configured, so the session is for
+  evolving the agents scaffolding itself. The two-repos workflow below does not
+  apply.
+- **When `AGENTS_GIT_REPO` is set** (a per-project settings branch such as
+  `geowep/ng`, run remotely): the hook clones the project into [src/](src/) and
+  everything below is in effect.
 
 In a remote session, a Claude Code Web session starts in **this** repo (the
 `agents` repo, at the workspace root). The session-start hook clones the
@@ -24,6 +35,23 @@ Claude Code Web sessions for this project.
 
 This is the codebase we are actually coding on. Make all project code edits
 here.
+
+**Operate as if the session had launched from the project directory.** Treat
+`src/<AGENTS_GIT_REPO>/<AGENTS_COMPONENT_DIR>` as your effective working
+directory and run all project commands, searches, edits, and git operations
+from there by default. Resolve the path by reading the values from
+[.claude/hooks/session-start.sh](.claude/hooks/session-start.sh):
+`AGENTS_GIT_REPO` (mandatory) gives `src/<AGENTS_GIT_REPO>`, and if
+`AGENTS_COMPONENT_DIR` is set non-empty, append it. Don't rely on
+`$AGENTS_COMPONENT_DIR` being in the environment — the hook exports it only
+inside a subshell, so it isn't visible to the session. For example, with
+`AGENTS_GIT_REPO=GeoWEP` and `AGENTS_COMPONENT_DIR=components/geowep-ng`, the
+effective directory is `src/GeoWEP/components/geowep-ng`; with no component set,
+it's `src/GeoWEP`.
+
+Switch back to the `agents` repo at the workspace root only for the agent
+scaffolding and settings-branch git workflow described above; all other work
+happens in the project directory.
 
 Because the remote session runs in an ephemeral container that is discarded
 when the session ends, **only pushed commits survive** — a local commit that is

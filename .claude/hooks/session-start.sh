@@ -2,16 +2,23 @@
 
 set -uo pipefail
 
-# Mandatory.
+# Mandatory!
 AGENTS_GIT_ACCOUNT=merkatordev
+# e.g. AGENTS_GIT_ACCOUNT=merkatordev
+
+# Mandatory!
 AGENTS_GIT_REPO=GeoWEP
+# e.g. AGENTS_GIT_REPO=GeoWEP
 
 # Optional (for a component in a monorepo).
-AGENTS_COMPONENT_DIR="docker/ng"
+AGENTS_COMPONENT_DIR=components/geowep-ng
+# e.g. AGENTS_COMPONENT_DIR=components/geowep-ng
 
 # You should set either AZURE_DEVOPS_EXT_PAT or GITHUB_PERSONAL_ACCESS_TOKEN in
 # your environment before starting the session. The script will use whichever is
 # set to construct the repo URL for cloning.
+
+# Don't touch anything below this line.
 
 [ -n "${GITHUB_PERSONAL_ACCESS_TOKEN:-}" ] &&
   repo_url=https://${GITHUB_PERSONAL_ACCESS_TOKEN:-}@github.com/$AGENTS_GIT_ACCOUNT/$AGENTS_GIT_REPO.git
