@@ -8,8 +8,8 @@ settings branch (alongside conf/.env, conf/PROJECT.sh, conf/COMPONENT.sh) and is
 imported by the root CLAUDE.md, so Claude always processes it.
 
 It is SEPARATE from the project repo's own CLAUDE.md, which the session-start
-hook already mirrors into the "MERGED AGENT INSTRUCTIONS" block of the root
-CLAUDE.md.
+hook mirrors into .claude/merged-agent-instructions.md (imported by the root
+CLAUDE.md).
 
 On the `main` template branch this file is intentionally empty. Fill it in on
 each project/component branch. Write plain Markdown instructions directly below
