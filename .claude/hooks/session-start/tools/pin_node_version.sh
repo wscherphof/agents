@@ -29,8 +29,12 @@ node_pin_diagnostics() {
         # processes fall through to the system Node regardless of the symlinks.
         echo "Claude/MCP PATH:    $(PATH="$CLAUDE_PATH" sh -c 'command -v node && node -v' 2>&1 | tr '\n' ' ')"
         case ":$CLAUDE_PATH:" in
-        *":$HOME/.local/bin:"*) echo "~/.local/bin on Claude PATH: yes" ;;
-        *) echo "~/.local/bin on Claude PATH: NO (MCP servers will use system Node)" ;;
+        *":$HOME/.local/bin:"*)
+            echo "$HOME/.local/bin on Claude PATH: yes"
+            ;;
+        *)
+            echo "$HOME/.local/bin on Claude PATH: NO (MCP servers will use system Node)"
+            ;;
         esac
         echo "symlinks:"
         ls -la "$HOME/.local/bin/node" "$HOME/.local/bin/npm" "$HOME/.local/bin/npx" 2>&1 || true
