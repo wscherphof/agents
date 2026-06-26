@@ -50,7 +50,7 @@ dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
   session_start_dir=$dir/session-start
   scripts_dir=$session_start_dir/scripts
-  AGENTS_TOOLS_DIR=$session_start_dir/tools
+  AGENTS_TOOLS_DIR=$CLAUDE_PROJECT_DIR/tools
   export AGENTS_TOOLS_DIR
 
   # With an Azure DevOps PAT set, install the az CLI + devops extension so

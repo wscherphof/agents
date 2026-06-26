@@ -41,7 +41,8 @@ When a Claude Code Web session starts on a branch of this repo, the
    the environment (`GITHUB_PERSONAL_ACCESS_TOKEN` or `AZURE_DEVOPS_EXT_PAT`).
 3. Runs the per-project setup steps — [conf/PROJECT.sh](conf/PROJECT.sh) at the
    repo root and [conf/COMPONENT.sh](conf/COMPONENT.sh) in the component dir
-   (e.g. `npm ci`, version pinning).
+   (e.g. `npm ci`, version pinning). These can call reusable helpers from
+   [tools/](tools/) via `$AGENTS_TOOLS_DIR` (e.g. `pin_node_version.sh`).
 4. On Azure DevOps, installs the `az` CLI + `azure-devops` extension in the
    background so PRs can be opened.
 5. [Mirrors agent
