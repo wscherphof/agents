@@ -1,3 +1,8 @@
+Per-project agent instructions for this settings branch live in
+[conf/CLAUDE.md](conf/CLAUDE.md) and are imported here:
+
+@conf/CLAUDE.md
+
 # Two repos, two git workflows
 
 **This file applies only when both of these hold:** `$CLAUDE_CODE_REMOTE` is
