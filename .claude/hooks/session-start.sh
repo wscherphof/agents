@@ -44,14 +44,16 @@ dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
   AGENTS_COMPONENT_DIR=$(realpath "$AGENTS_REPO_DIR/${AGENTS_COMPONENT_DIR:-.}")
   export AGENTS_COMPONENT_DIR
+
+  AGENTS_TOOLS_DIR=$CLAUDE_PROJECT_DIR/tools
+  export AGENTS_TOOLS_DIR
+
   export AGENTS_REPO_DIR
   export AGENTS_GIT_ACCOUNT
   export AGENTS_GIT_REPO
 
   session_start_dir=$dir/session-start
   scripts_dir=$session_start_dir/scripts
-  AGENTS_TOOLS_DIR=$CLAUDE_PROJECT_DIR/tools
-  export AGENTS_TOOLS_DIR
 
   # With an Azure DevOps PAT set, install the az CLI + devops extension so
   # Claude can push and open PRs. The az devops commands authenticate via the
