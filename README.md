@@ -41,8 +41,8 @@ When a Claude Code Web session starts on a branch of this repo, the
    the environment (`GITHUB_PERSONAL_ACCESS_TOKEN` or `AZURE_DEVOPS_EXT_PAT`).
 3. Runs the per-project setup steps — [conf/PROJECT.sh](conf/PROJECT.sh) at the
    repo root and [conf/COMPONENT.sh](conf/COMPONENT.sh) in the component dir
-   (e.g. `npm ci`, version pinning). These can call reusable helpers from
-   [tools/](tools/) via `$AGENTS_TOOLS_DIR` (e.g. `pin_node_version.sh`).
+   (e.g. `npm ci`, version pinning). Both run with a set of `AGENTS_*`
+   variables exported — see [below](#variables-for-your-setup-scripts).
 4. On Azure DevOps, installs the `az` CLI + `azure-devops` extension in the
    background so PRs can be opened.
 5. [Mirrors agent
@@ -54,6 +54,23 @@ When a Claude Code Web session starts on a branch of this repo, the
    authoritative each run (removals in the source propagate), and the launcher's
    own scaffolding is re-injected afterward so regeneration keeps working. A run
    with no changes produces no commit.
+
+### Variables for your setup scripts
+
+[conf/PROJECT.sh](conf/PROJECT.sh) and [conf/COMPONENT.sh](conf/COMPONENT.sh)
+run with these `AGENTS_*` variables exported, so they can locate the clone and
+reuse shared helpers without hard-coding paths:
+
+| Variable               | Value                                                                                                                                                                                                                                              |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AGENTS_GIT_ACCOUNT`   | The git account/org that owns the project repo, from [conf/.env](conf/.env).                                                                                                                                                                        |
+| `AGENTS_GIT_REPO`      | The project repo name, from [conf/.env](conf/.env).                                                                                                                                                                                                 |
+| `AGENTS_REPO_DIR`      | Absolute path to the cloned project repo (`src/<AGENTS_GIT_REPO>`). `PROJECT.sh` runs with this as its working directory.                                                                                                                           |
+| `AGENTS_COMPONENT_DIR` | Absolute path to the component directory — `AGENTS_REPO_DIR` joined with the `AGENTS_COMPONENT_DIR` set in [conf/.env](conf/.env), or the repo root if none is set. `COMPONENT.sh` runs with this as its working directory. (Note: the [conf/.env](conf/.env) input is a _relative_ path; the exported value is the _resolved absolute_ one.) |
+| `AGENTS_TOOLS_DIR`     | Absolute path to [tools/](tools/), the reusable setup helpers (e.g. `pin_node_version.sh`). Call them as `"$AGENTS_TOOLS_DIR/pin_node_version.sh"`.                                                                                                  |
+
+These are only exported within the session-start hook's setup subshell, so they
+are available to `PROJECT.sh`/`COMPONENT.sh` but not to the session afterward.
 
 ## Fork it — there's nothing to install
 
