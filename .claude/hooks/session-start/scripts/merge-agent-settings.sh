@@ -214,7 +214,7 @@ copy_referenced_files() {
       rel="${tok#./}"
       case "$rel" in
       .claude/hooks/session-start.sh | .claude/settings.json | .mcp.json | \
-        .claude/hooks/session-start/*)
+        .claude/hooks/session-start/* | conf/*)
         log "warn: refused to overwrite scaffolding via reference: $rel"
         continue
         ;;

@@ -2,11 +2,12 @@
 
 set -uo pipefail
 
-# Project configuration (which repo/component this branch targets) lives in
-# conf/.env — committed per project/component branch. Edit it there.
-conf_env="$CLAUDE_PROJECT_DIR/conf/.env"
+# Project configuration (which repo/component this branch targets, plus the
+# PROJECT.sh/COMPONENT.sh setup steps) lives in conf/ — committed per
+# project/component branch. Edit it there.
+conf_dir="$CLAUDE_PROJECT_DIR/conf"
 # shellcheck source=/dev/null
-[ -f "$conf_env" ] && . "$conf_env"
+[ -f "$conf_dir/.env" ] && . "$conf_dir/.env"
 : "${AGENTS_GIT_ACCOUNT:=}" "${AGENTS_GIT_REPO:=}" "${AGENTS_COMPONENT_DIR:=}"
 
 # You should set either AZURE_DEVOPS_EXT_PAT or GITHUB_PERSONAL_ACCESS_TOKEN in
@@ -62,11 +63,11 @@ dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
   echo "• Running PROJECT.sh..."
   cd "$AGENTS_REPO_DIR" || exit
-  bash "$session_start_dir/PROJECT.sh"
+  bash "$conf_dir/PROJECT.sh"
 
   echo "• Running COMPONENT.sh..."
   cd "$AGENTS_COMPONENT_DIR" || exit
-  bash "$session_start_dir/COMPONENT.sh"
+  bash "$conf_dir/COMPONENT.sh"
 
   echo "• Merging agent settings..."
   cd "$AGENTS_REPO_DIR" || exit

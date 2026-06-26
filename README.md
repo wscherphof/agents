@@ -39,9 +39,8 @@ When a Claude Code Web session starts on a branch of this repo, the
    what make the branch project/component-specific.
 2. Clones (or fast-forward pulls) that repo into [src/](src/) using the PAT from
    the environment (`GITHUB_PERSONAL_ACCESS_TOKEN` or `AZURE_DEVOPS_EXT_PAT`).
-3. Runs the per-project setup steps —
-   [PROJECT.sh](.claude/hooks/session-start/PROJECT.sh) at the repo root and
-   [COMPONENT.sh](.claude/hooks/session-start/COMPONENT.sh) in the component dir
+3. Runs the per-project setup steps — [conf/PROJECT.sh](conf/PROJECT.sh) at the
+   repo root and [conf/COMPONENT.sh](conf/COMPONENT.sh) in the component dir
    (e.g. `npm ci`, version pinning).
 4. On Azure DevOps, installs the `az` CLI + `azure-devops` extension in the
    background so PRs can be opened.
