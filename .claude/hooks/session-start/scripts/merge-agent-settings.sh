@@ -117,9 +117,12 @@ mirror_settings() {
                | select(any(.hooks[]?.command // ""; test("session-start\\.sh"))) ]' 2>/dev/null)"
   [ -n "$scaffold" ] || scaffold='[]'
 
+  # MCP server definitions belong in .mcp.json (see mirror_mcp), never in the
+  # mirrored settings.json — drop them from the output here.
   mkdir -p "$(dirname "$out")"
   jq --argjson scaffold "$scaffold" '
-    .hooks = (.hooks // {})
+    del(.mcpServers)
+    | .hooks = (.hooks // {})
     | .hooks.SessionStart = (
         ((.hooks.SessionStart // []) + $scaffold)
         | reduce .[] as $e ([]; if any(.[]; . == $e) then . else . + [$e] end)
@@ -130,15 +133,37 @@ mirror_settings() {
 }
 
 # --- 4. .mcp.json (mirror; per-server last-layer-wins so args do not double) -
+# Inputs per layer, in order: the mcpServers lifted out of that layer's
+# settings.json (mirror_settings strips them there), then the layer's own
+# .mcp.json (so an explicit .mcp.json wins over settings.json within a layer).
+# Component layers come after root, so component wins across layers.
 mirror_mcp() {
   local rel=".mcp.json" out="$DEST/.mcp.json"
-  local inputs=()
-  mapfile -t inputs < <(json_inputs "$rel")
-  if [ ${#inputs[@]} -eq 0 ]; then
+  local layer s m tmp parts=()
+  for layer in "${SRC_LAYERS[@]}"; do
+    # mcpServers lifted out of this layer's settings.json
+    s="$layer/.claude/settings.json"
+    if [ -f "$s" ] && jq -e '.mcpServers | objects | length > 0' "$s" >/dev/null 2>&1; then
+      tmp="$(mktemp)"
+      TMPFILES+=("$tmp")
+      jq '{mcpServers: .mcpServers}' "$s" >"$tmp"
+      parts+=("$tmp")
+    fi
+    # this layer's own .mcp.json (wins over its settings.json mcpServers)
+    m="$layer/$rel"
+    if [ -f "$m" ]; then
+      if jq -e . "$m" >/dev/null 2>&1; then
+        parts+=("$m")
+      else
+        log "warn: malformed JSON skipped: $m"
+      fi
+    fi
+  done
+  if [ ${#parts[@]} -eq 0 ]; then
     if [ -e "$out" ]; then rm -f "$out"; fi # mirror: source dropped it -> remove
     return 0
   fi
-  jq -s 'reduce .[] as $o ({}; . * $o)' "${inputs[@]}" >"$out"
+  jq -s 'reduce .[] as $o ({}; . * $o)' "${parts[@]}" >"$out"
 }
 
 # --- 5. relative-path referenced command / executable files -----------------
