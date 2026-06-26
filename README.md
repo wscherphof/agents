@@ -55,6 +55,15 @@ When a Claude Code Web session starts on a branch of this repo, the
    own scaffolding is re-injected afterward so regeneration keeps working. A run
    with no changes produces no commit.
 
+Alongside the setup scripts, [conf/CLAUDE.md](conf/CLAUDE.md) holds
+**per-project/component agent instructions** — the agent-workflow overlay for
+guidance that should not live in the project repo (cloud build quirks, which
+branch to target, tooling notes). It is committed per settings branch like the
+other `conf/` files and is imported by the root [CLAUDE.md](CLAUDE.md), so the
+cloud session always processes it. It is separate from, and layered on top of,
+the project repo's own `CLAUDE.md` that step 5 mirrors in. On the `main`
+template branch it is intentionally empty.
+
 ### Variables for your setup scripts
 
 [conf/PROJECT.sh](conf/PROJECT.sh) and [conf/COMPONENT.sh](conf/COMPONENT.sh)
