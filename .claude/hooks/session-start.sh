@@ -11,7 +11,7 @@ AGENTS_GIT_REPO=GeoWEP
 # e.g. AGENTS_GIT_REPO=GeoWEP
 
 # Optional (for a component in a monorepo).
-AGENTS_COMPONENT_DIR=components/geowep-ng
+AGENTS_COMPONENT_DIR=docker/ng
 # e.g. AGENTS_COMPONENT_DIR=components/geowep-ng
 
 # You should set either AZURE_DEVOPS_EXT_PAT or GITHUB_PERSONAL_ACCESS_TOKEN in
