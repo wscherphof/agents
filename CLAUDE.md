@@ -1,9 +1,9 @@
 # Two repos, two git workflows
 
 **This file applies only when both of these hold:** `$CLAUDE_CODE_REMOTE` is
-`'true'`, **and** the uncommented `AGENTS_GIT_REPO=` assignment in
-[.claude/hooks/session-start.sh](.claude/hooks/session-start.sh) is non-empty
-(the `# e.g. …` example comments don't count). Concretely:
+`'true'`, **and** the `AGENTS_GIT_REPO=` assignment in
+[conf/.env](conf/.env) is non-empty (the `# e.g. …` example comments don't
+count). Concretely:
 
 - **Locally** (`CLAUDE_CODE_REMOTE` unset): the session-start hook never runs,
   there is no [src/](src/) clone — treat this as an ordinary repo and ignore
@@ -40,8 +40,8 @@ here.
 `src/<AGENTS_GIT_REPO>/<AGENTS_COMPONENT_DIR>` as your effective working
 directory and run all project commands, searches, edits, and git operations
 from there by default. Resolve the path by reading the values from
-[.claude/hooks/session-start.sh](.claude/hooks/session-start.sh):
-`AGENTS_GIT_REPO` (mandatory) gives `src/<AGENTS_GIT_REPO>`, and if
+[conf/.env](conf/.env): `AGENTS_GIT_REPO` (mandatory) gives
+`src/<AGENTS_GIT_REPO>`, and if
 `AGENTS_COMPONENT_DIR` is set non-empty, append it. Don't rely on
 `$AGENTS_COMPONENT_DIR` being in the environment — the hook exports it only
 inside a subshell, so it isn't visible to the session. For example, with

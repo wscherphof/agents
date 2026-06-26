@@ -2,17 +2,13 @@
 
 set -uo pipefail
 
-# Mandatory!
-AGENTS_GIT_ACCOUNT=merkatordev
-# e.g. AGENTS_GIT_ACCOUNT=merkatordev
-
-# Mandatory!
-AGENTS_GIT_REPO=GeoWEP
-# e.g. AGENTS_GIT_REPO=GeoWEP
-
-# Optional (for a component in a monorepo).
-AGENTS_COMPONENT_DIR=docker/ng
-# e.g. AGENTS_COMPONENT_DIR=components/geowep-ng
+# Project configuration (which repo/component this branch targets, plus the
+# PROJECT.sh/COMPONENT.sh setup steps) lives in conf/ — committed per
+# project/component branch. Edit it there.
+conf_dir="$CLAUDE_PROJECT_DIR/conf"
+# shellcheck source=/dev/null
+[ -f "$conf_dir/.env" ] && . "$conf_dir/.env"
+: "${AGENTS_GIT_ACCOUNT:=}" "${AGENTS_GIT_REPO:=}" "${AGENTS_COMPONENT_DIR:=}"
 
 # You should set either AZURE_DEVOPS_EXT_PAT or GITHUB_PERSONAL_ACCESS_TOKEN in
 # your environment before starting the session. The script will use whichever is
@@ -48,14 +44,16 @@ dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
   AGENTS_COMPONENT_DIR=$(realpath "$AGENTS_REPO_DIR/${AGENTS_COMPONENT_DIR:-.}")
   export AGENTS_COMPONENT_DIR
+
+  AGENTS_TOOLS_DIR=$CLAUDE_PROJECT_DIR/tools
+  export AGENTS_TOOLS_DIR
+
   export AGENTS_REPO_DIR
   export AGENTS_GIT_ACCOUNT
   export AGENTS_GIT_REPO
 
   session_start_dir=$dir/session-start
   scripts_dir=$session_start_dir/scripts
-  AGENTS_TOOLS_DIR=$session_start_dir/tools
-  export AGENTS_TOOLS_DIR
 
   # With an Azure DevOps PAT set, install the az CLI + devops extension so
   # Claude can push and open PRs. The az devops commands authenticate via the
@@ -67,11 +65,11 @@ dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
   echo "• Running PROJECT.sh..."
   cd "$AGENTS_REPO_DIR" || exit
-  bash "$session_start_dir/PROJECT.sh"
+  bash "$conf_dir/PROJECT.sh"
 
   echo "• Running COMPONENT.sh..."
   cd "$AGENTS_COMPONENT_DIR" || exit
-  bash "$session_start_dir/COMPONENT.sh"
+  bash "$conf_dir/COMPONENT.sh"
 
   echo "• Merging agent settings..."
   cd "$AGENTS_REPO_DIR" || exit
