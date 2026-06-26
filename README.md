@@ -31,13 +31,12 @@ reach](https://wscherphof.wordpress.com/2026/06/25/running-cloud-coding-agents-a
 When a Claude Code Web session starts on a branch of this repo, the
 [session-start hook](.claude/hooks/session-start.sh):
 
-1. Reads the target project from variables at the top of the hook
+1. Reads the target project from [conf/.env](conf/.env)
    (`AGENTS_GIT_ACCOUNT`, `AGENTS_GIT_REPO`, and optionally
    `AGENTS_COMPONENT_DIR` for a monorepo component). **You set these yourself**
-   — edit them in [session-start.sh](.claude/hooks/session-start.sh) on each
-   project/component branch so the branch points at the right repo (and
-   component); they are committed there and are what make the branch
-   project/component-specific.
+   — edit [conf/.env](conf/.env) on each project/component branch so the branch
+   points at the right repo (and component); they are committed there and are
+   what make the branch project/component-specific.
 2. Clones (or fast-forward pulls) that repo into [src/](src/) using the PAT from
    the environment (`GITHUB_PERSONAL_ACCESS_TOKEN` or `AZURE_DEVOPS_EXT_PAT`).
 3. Runs the per-project setup steps —
@@ -75,9 +74,8 @@ project-specific config.
 ## Branch hierarchy: pick the project (and component) when you start
 
 You choose **which project a session drives by choosing a branch** in the Claude
-Code Web branch picker. Each branch carries its own [session-start
-hook](.claude/hooks/session-start.sh) configuration plus that project's mirrored
-settings:
+Code Web branch picker. Each branch carries its own [conf/.env](conf/.env)
+configuration plus that project's mirrored settings:
 
 ![Selecting the geowep/ng branch in the Claude Code Web branch
 picker](docs/images/branch-picker.png)
@@ -92,8 +90,9 @@ picker](docs/images/branch-picker.png)
 The settings branch name is derived automatically from the project identity
 (`AGENTS_GIT_REPO` lowercased, plus the last path segment of the component dir),
 or set explicitly via `AGENTS_SETTINGS_BRANCH`. To onboard a new project or
-component, branch from `main`, set the project variables in the hook, and start
-a session on it — the first run populates the branch.
+component, branch from `main`, set the project variables in
+[conf/.env](conf/.env), and start a session on it — the first run populates the
+branch.
 
 This gives you a tree like:
 

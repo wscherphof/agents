@@ -2,17 +2,12 @@
 
 set -uo pipefail
 
-# Mandatory!
-AGENTS_GIT_ACCOUNT=
-# e.g. AGENTS_GIT_ACCOUNT=merkatordev
-
-# Mandatory!
-AGENTS_GIT_REPO=
-# e.g. AGENTS_GIT_REPO=GeoWEP
-
-# Optional (for a component in a monorepo).
-AGENTS_COMPONENT_DIR=
-# e.g. AGENTS_COMPONENT_DIR=components/geowep-ng
+# Project configuration (which repo/component this branch targets) lives in
+# conf/.env — committed per project/component branch. Edit it there.
+conf_env="$CLAUDE_PROJECT_DIR/conf/.env"
+# shellcheck source=/dev/null
+[ -f "$conf_env" ] && . "$conf_env"
+: "${AGENTS_GIT_ACCOUNT:=}" "${AGENTS_GIT_REPO:=}" "${AGENTS_COMPONENT_DIR:=}"
 
 # You should set either AZURE_DEVOPS_EXT_PAT or GITHUB_PERSONAL_ACCESS_TOKEN in
 # your environment before starting the session. The script will use whichever is
