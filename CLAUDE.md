@@ -85,5 +85,7 @@ out, the install is probably still running — wait a bit and retry; check
 for progress. `git push` itself does not depend on `az` (it authenticates via
 the PAT in the remote URL), so push first, then create the PR once `az` is up.
 
-<!-- BEGIN MERGED AGENT INSTRUCTIONS (auto-generated, do not edit) -->
-<!-- END MERGED AGENT INSTRUCTIONS -->
+The project repo's own agent instructions, mirrored in by the session-start
+hook, are imported here:
+
+@.claude/merged-agent-instructions.md
