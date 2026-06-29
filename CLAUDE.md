@@ -85,6 +85,13 @@ out, the install is probably still running — wait a bit and retry; check
 for progress. `git push` itself does not depend on `az` (it authenticates via
 the PAT in the remote URL), so push first, then create the PR once `az` is up.
 
+On Azure DevOps, **pull requests are referenced with a `!`-prefix** (e.g.
+`!123`), while **work items** (issues, features, bugs, tasks) use a `#`-prefix
+(e.g. `#123`) as on GitHub. These are separate number spaces, so `!123` and
+`#123` are different objects. When writing PR references, always use
+`!<number>` — never `#<number>`, which renders a short link to a (possibly
+non-existent) work item rather than the PR.
+
 ### Docker
 
 When `AGENTS_START_DOCKER=true` in [conf/.env](conf/.env), the session-start
