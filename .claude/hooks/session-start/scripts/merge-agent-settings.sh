@@ -312,7 +312,8 @@ if [ -z "$target_branch" ]; then
 fi
 
 # Remember where the session's checked-out branch started, so we can roll it
-# back after pushing (see the reset below). Captured before any commit moves it.
+# back below (whether or not the push succeeds). Captured before any commit
+# moves it.
 session_head="$(git -C "$DEST" rev-parse HEAD)"
 
 git -C "$DEST" add -A
@@ -330,18 +331,26 @@ git -C "$DEST" \
   -c user.email="wouter.scherphof@merkator.com" \
   commit -m "$msg" >&2
 # Plain (non-forced) push: a fast-forward onto the settings branch succeeds; if
-# that branch has diverged it fails loudly rather than clobbering other work.
-git -C "$DEST" push origin "HEAD:$target_branch" >&2
-log "committed and pushed to $target_branch"
+# the branch has diverged (or the name is invalid/colliding) it fails. We do NOT
+# let a failure abort the script (it would skip the reset below and strand the
+# commit) — we capture it and warn instead.
+if git -C "$DEST" push origin "HEAD:$target_branch" >&2; then
+  log "committed and pushed to $target_branch"
+else
+  log "WARNING: push to settings branch '$target_branch' FAILED — settings were"
+  log "  not updated this session. The mirror is idempotent and will retry next"
+  log "  session; if it keeps failing the branch name is likely wrong or collides"
+  log "  with a sibling (e.g. 'geowep' vs 'geowep/ng') — set AGENTS_SETTINGS_BRANCH"
+  log "  to override. Discarding the local commit anyway (see below)."
+fi
 
 # Roll the session's checked-out branch back to where it started, discarding the
-# local merge commit (its content is now safely on the settings branch). Without
-# this, that lone commit sits ahead on the ephemeral claude/<session> branch, and
-# Claude Code Web's end-of-session persistence pushes it as a redundant
-# claude/<session> branch alongside the settings-branch push we just did. There
-# is no loss: the merged settings live on the settings branch (their permanent
-# home, which future sessions clone from), and the current session keeps using
-# the settings its own clone started with — it never consumes this fresh commit.
-# Only runs after a successful push, so an unpushed commit is never discarded.
+# local merge commit. UNCONDITIONAL — whether or not the push succeeded — so the
+# ephemeral claude/<session> branch never carries a commit that Claude Code Web's
+# end-of-session persistence would push as a redundant claude/<session> branch.
+# There is no loss: on success the settings live on the settings branch (their
+# permanent home, which future sessions clone from); on failure the mirror is
+# idempotent and regenerates next session. Either way the current session keeps
+# using the settings its own clone started with — it never consumes this commit.
 git -C "$DEST" reset --hard "$session_head" >&2
-log "reset session branch to $session_head (settings live on $target_branch)"
+log "reset session branch to $session_head"
