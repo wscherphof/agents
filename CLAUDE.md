@@ -1,3 +1,8 @@
+Per-project agent instructions for this settings branch live in
+[conf/CLAUDE.md](conf/CLAUDE.md) and are imported here:
+
+@conf/CLAUDE.md
+
 # Two repos, two git workflows
 
 **This file applies only when both of these hold:** `$CLAUDE_CODE_REMOTE` is
@@ -79,36 +84,18 @@ out, the install is probably still running — wait a bit and retry; check
 [.claude/hooks/session-start/scripts/install-az-devops.log](.claude/hooks/session-start/scripts/install-az-devops.log)
 for progress. `git push` itself does not depend on `az` (it authenticates via
 the PAT in the remote URL), so push first, then create the PR once `az` is up.
-<!-- BEGIN MERGED AGENT INSTRUCTIONS (auto-generated, do not edit) -->
 
-## From merkatordev/GeoWEP (root)
+### Docker
 
-# GeoWEP — Claude Code Instructions
+When `AGENTS_START_DOCKER=true` in [conf/.env](conf/.env), the session-start
+hook starts the Docker daemon **in the background** (the container image must
+already have Docker installed). Like the Azure CLI install, it may not be ready
+the instant the session begins — if a `docker` command reports the daemon isn't
+running, wait a moment and retry, and check
+[.claude/hooks/session-start/scripts/start-docker.log](.claude/hooks/session-start/scripts/start-docker.log)
+for progress.
 
-Project guidance lives in [.github/](.github/) as GitHub Copilot customisations. Treat them as authoritative for this repo.
+The project repo's own agent instructions, mirrored in by the session-start
+hook, are imported here:
 
-## Core instructions
-
-See [.github/copilot-instructions.md](.github/copilot-instructions.md) for project overview and general coding rules.
-
-## Domain-specific instructions
-
-Apply these when working in the relevant area:
-
-- [.github/instructions/database-operations.instructions.md](.github/instructions/database-operations.instructions.md) — read-only PostgreSQL/PostGIS diagnostics
-- [.github/instructions/docker-operations.instructions.md](.github/instructions/docker-operations.instructions.md) — Docker operational files under `docker/`
-- [.github/instructions/legacy-angularjs.instructions.md](.github/instructions/legacy-angularjs.instructions.md) — legacy AngularJS app under `app/`
-- [.github/instructions/postgis-migrations.instructions.md](.github/instructions/postgis-migrations.instructions.md) — PostgreSQL/PostGIS migrations
-
-## Agents
-
-Reusable agents for specialised tasks:
-
-- [.github/agents/instructions-maintainer.agent.md](.github/agents/instructions-maintainer.agent.md) — keeps instruction files up to date
-- [.github/agents/postgres-postgis-advisor.agent.md](.github/agents/postgres-postgis-advisor.agent.md) — PostGIS schema and query advice
-
-## Skills
-
-- [.github/skills/open-localhost-app/SKILL.md](.github/skills/open-localhost-app/SKILL.md) — open the app at `https://localhost:7443`
-
-<!-- END MERGED AGENT INSTRUCTIONS -->
+@.claude/merged-agent-instructions.md

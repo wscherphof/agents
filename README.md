@@ -48,12 +48,23 @@ When a Claude Code Web session starts on a branch of this repo, the
 5. [Mirrors agent
    settings](.claude/hooks/session-start/scripts/merge-agent-settings.sh) from
    the cloned project (its `.claude/settings.json`, `.mcp.json`,
-   `.claude/agents/`, `.agents/`, `.github/`, and `CLAUDE.md`) into this repo,
-   then commits and **pushes them to the project's settings branch** so the next
+   `.claude/agents/`, `.agents/`, `.github/`, and `CLAUDE.md`) into this repo
+   (the project's `CLAUDE.md` is written to `.claude/merged-agent-instructions.md`,
+   imported by the root [CLAUDE.md](CLAUDE.md)), then commits and **pushes them
+   to the project's settings branch** so the next
    session for that project picks them up automatically. The mirror is
    authoritative each run (removals in the source propagate), and the launcher's
    own scaffolding is re-injected afterward so regeneration keeps working. A run
    with no changes produces no commit.
+
+Alongside the setup scripts, [conf/CLAUDE.md](conf/CLAUDE.md) holds
+**per-project/component agent instructions** — the agent-workflow overlay for
+guidance that should not live in the project repo (cloud build quirks, which
+branch to target, tooling notes). It is committed per settings branch like the
+other `conf/` files and is imported by the root [CLAUDE.md](CLAUDE.md), so the
+cloud session always processes it. It is separate from, and layered on top of,
+the project repo's own `CLAUDE.md` that step 5 mirrors in. On the `main`
+template branch it is intentionally empty.
 
 ### Variables for your setup scripts
 

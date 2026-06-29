@@ -8,7 +8,7 @@ set -uo pipefail
 conf_dir="$CLAUDE_PROJECT_DIR/conf"
 # shellcheck source=/dev/null
 [ -f "$conf_dir/.env" ] && . "$conf_dir/.env"
-: "${AGENTS_GIT_ACCOUNT:=}" "${AGENTS_GIT_REPO:=}" "${AGENTS_COMPONENT_DIR:=}"
+: "${AGENTS_GIT_ACCOUNT:=}" "${AGENTS_GIT_REPO:=}" "${AGENTS_COMPONENT_DIR:=}" "${AGENTS_START_DOCKER:=}"
 
 # You should set either AZURE_DEVOPS_EXT_PAT or GITHUB_PERSONAL_ACCESS_TOKEN in
 # your environment before starting the session. The script will use whichever is
@@ -62,6 +62,13 @@ dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     echo "• Installing Azure CLI and devops extension..."
     bash "$scripts_dir/install-az-devops.sh" &
   fi &>"$scripts_dir/install-az-devops.log"
+
+  # When AGENTS_START_DOCKER=true, bring up the Docker daemon in the background
+  # (the image must already have Docker installed).
+  if [ "${AGENTS_START_DOCKER:-}" = "true" ]; then
+    echo "• Starting Docker daemon..."
+    bash "$scripts_dir/start-docker.sh" &
+  fi &>"$scripts_dir/start-docker.log"
 
   echo "• Running PROJECT.sh..."
   cd "$AGENTS_REPO_DIR" || exit
