@@ -16,7 +16,11 @@ count). Concretely:
 - **On the template branch** (`main`), where `AGENTS_GIT_ACCOUNT`/
   `AGENTS_GIT_REPO` are blank: no project is configured, so the session is for
   evolving the agents scaffolding itself. The two-repos workflow below does not
-  apply.
+  apply. **Whenever you push scaffolding commits to `main`, ask the dev whether
+  to propagate them to all the per-project/component settings branches** (every
+  local/remote branch other than `main` — e.g. `geowep`, `geowep-ng`). If they
+  confirm, cherry-pick the new commits onto each branch and push both the local
+  branch and its remote. Just ask once per push; don't propagate silently.
 - **When `AGENTS_GIT_REPO` is set** (a per-project settings branch such as
   `geowep-ng`, run remotely): the hook clones the project into [src/](src/) and
   everything below is in effect.
