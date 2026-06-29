@@ -33,13 +33,32 @@ separate:
 
 ## Naming the session
 
-Prefix this Claude Code session's name with the **agents repo branch we started
+The session name should be **prefixed with the agents repo branch we started
 from** — the project's settings branch, which is `<repo>` or `<repo>-<component>`
 (get it with `git rev-parse --abbrev-ref HEAD` at the workspace root; e.g.
-`geowep` or `geowep-ng`). So a session about merging settings becomes
+`geowep` or `geowep-ng`). So a session whose auto-generated name is
+`settings merge in start session hook` should become
 `geowep-ng: settings merge in start session hook`. This makes it obvious at a
 glance, in the Recents list, which project (and component) each session is
 working on.
+
+**You cannot rename the session yourself** — there is no tool for it, and by the
+time you read this the platform has already auto-named the session from the
+first prompt. Only the user can rename it (the `/rename` command), so the prefix
+won't appear unless you prompt them. Therefore, **early in a remote project
+session, proactively suggest the rename**: emit, for the user to run, a single
+ready-to-paste line of the form
+
+```
+/rename geowep-ng: <short description of this session's work>
+```
+
+i.e. the branch prefix, then `: `, then a concise description. You don't have
+access to the platform's auto-generated session name, so derive the description
+from the first prompt / the work at hand (a handful of words); the user can keep
+their own wording if they prefer. Do this once, near the start — don't nag on
+later turns. If the first prompt shows the session name is already prefixed
+(e.g. a resumed session), say nothing.
 
 ## This repo (`agents`, workspace root)
 
