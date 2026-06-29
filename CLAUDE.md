@@ -127,10 +127,32 @@ gitignored there, so a relative link like `src/<repo>/foo.ts` resolves against
 the `agents` repo and 404s in Claude Code Web — the file isn't part of that
 repo.
 
-So for any file under `src/<AGENTS_GIT_REPO>/…` (the cloned project repo),
-**override the default and emit a full web URL into the project repo's remote**
-instead of a workspace-relative path. Build it from the values in
-[conf/.env](conf/.env):
+The trap is that you are told to **operate as if launched from the project
+directory** and to refer to project files by their working-dir-relative path
+(e.g. `docker/ng/CODE-REVIEW.md`, not `src/GeoWEP/docker/ng/CODE-REVIEW.md`). So
+when you mention such a file, the default kicks in and renders that bare path as
+a link relative to the `agents` workspace root — a broken link. **Any time you
+link a file you edited/created/read in the project repo, this rule applies**,
+even though its path doesn't visibly start with `src/`.
+
+**Use the `srclink` helper — don't hand-build the URL.** The session-start hook
+puts it on PATH (it's [tools/srclink.sh](tools/srclink.sh)). Run it from the
+project working dir and pass the same path you'd `cat`/`ls`; it derives the
+host/account/repo/branch from the project repo's own checkout and prints a
+ready-to-paste Markdown link (PAT stripped, path URL-encoded):
+
+```
+srclink docker/ng/CODE-REVIEW.md                 # whole file
+srclink src/app/foo.ts:42                         # one line
+srclink src/app/foo.ts:42-50 "the bug"            # line range + custom text
+```
+
+It refuses paths that aren't under the cloned project repo, so an `agents`-repo
+file (use a normal workspace-relative link for those) won't slip through.
+
+If for some reason `srclink` isn't available, **override the default and emit a
+full web URL into the project repo's remote** by hand instead of a
+workspace-relative path. Build it from the values in [conf/.env](conf/.env):
 
 - **Branch (`<branch>`):** the branch currently checked out in the project repo
   — `git -C src/<AGENTS_GIT_REPO> rev-parse --abbrev-ref HEAD`. (The link only
