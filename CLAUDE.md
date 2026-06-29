@@ -59,9 +59,12 @@ scaffolding and settings-branch git workflow described above; all other work
 happens in the project directory.
 
 Because the remote session runs in an ephemeral container that is discarded
-when the session ends, **only pushed commits survive** — a local commit that is
-never pushed is lost (Claude Code Web does not auto-push; each session is a
-fresh clone from the remote). Always push after committing.
+when the session ends, **only pushed commits survive** — each session is a fresh
+clone from the remote, so don't rely on a local commit persisting on its own.
+Always push after committing. (Claude Code Web *may* persist a session's commits
+at session end by pushing them to a `claude/<session>` branch, but treat that as
+a backstop you don't control, not the intended path — push deliberately to the
+branch you mean.)
 
 There are two common routes:
 
