@@ -85,6 +85,16 @@ out, the install is probably still running — wait a bit and retry; check
 for progress. `git push` itself does not depend on `az` (it authenticates via
 the PAT in the remote URL), so push first, then create the PR once `az` is up.
 
+### Docker
+
+When `AGENTS_START_DOCKER=true` in [conf/.env](conf/.env), the session-start
+hook starts the Docker daemon **in the background** (the container image must
+already have Docker installed). Like the Azure CLI install, it may not be ready
+the instant the session begins — if a `docker` command reports the daemon isn't
+running, wait a moment and retry, and check
+[.claude/hooks/session-start/scripts/start-docker.log](.claude/hooks/session-start/scripts/start-docker.log)
+for progress.
+
 The project repo's own agent instructions, mirrored in by the session-start
 hook, are imported here:
 
