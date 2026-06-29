@@ -18,7 +18,7 @@ count). Concretely:
   evolving the agents scaffolding itself. The two-repos workflow below does not
   apply.
 - **When `AGENTS_GIT_REPO` is set** (a per-project settings branch such as
-  `geowep/ng`, run remotely): the hook clones the project into [src/](src/) and
+  `geowep-ng`, run remotely): the hook clones the project into [src/](src/) and
   everything below is in effect.
 
 In a remote session, a Claude Code Web session starts in **this** repo (the
@@ -32,7 +32,7 @@ separate:
 Holds the agent scaffolding and the mirrored settings/instructions. The
 session-start hook commits the auto-merged settings and pushes them to the
 project's **settings branch** — a stable per-project branch derived from the
-repo name (e.g. `geowep`, or `geowep/ng` for a monorepo component), overridable
+repo name (e.g. `geowep`, or `geowep-ng` for a monorepo component), overridable
 via `AGENTS_SETTINGS_BRANCH` — so they are immediately available to future
 Claude Code Web sessions for this project.
 

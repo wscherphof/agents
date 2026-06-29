@@ -303,12 +303,18 @@ merge_claude_md
 # that branch gets its own commits, e.g. on resume).
 #
 # Derive the target from the project identity (repo + optional component) so it
-# is independent of the current checkout: GeoWEP + docker/ng -> geowep/ng.
-# AGENTS_SETTINGS_BRANCH overrides it when the convention does not fit.
+# is independent of the current checkout. The component is joined with a HYPHEN,
+# not a slash, so a repo's project-level branch never collides with a component
+# one: git refs cannot be both `geowep` and `geowep/ng` (a directory/file
+# conflict that makes the project-level push fail whenever a component branch
+# exists), but `geowep` and `geowep-ng` coexist fine.
+#   GeoWEP              -> geowep
+#   GeoWEP + docker/ng  -> geowep-ng
+# AGENTS_SETTINGS_BRANCH overrides the scheme when it does not fit.
 target_branch="${AGENTS_SETTINGS_BRANCH:-}"
 if [ -z "$target_branch" ]; then
   target_branch="${AGENTS_GIT_REPO,,}"
-  [ -n "$COMPONENT_REL" ] && target_branch="$target_branch/${COMPONENT_REL##*/}"
+  [ -n "$COMPONENT_REL" ] && target_branch="${target_branch}-${COMPONENT_REL##*/}"
 fi
 
 # Remember where the session's checked-out branch started, so we can roll it
@@ -339,9 +345,9 @@ if git -C "$DEST" push origin "HEAD:$target_branch" >&2; then
 else
   log "WARNING: push to settings branch '$target_branch' FAILED — settings were"
   log "  not updated this session. The mirror is idempotent and will retry next"
-  log "  session; if it keeps failing the branch name is likely wrong or collides"
-  log "  with a sibling (e.g. 'geowep' vs 'geowep/ng') — set AGENTS_SETTINGS_BRANCH"
-  log "  to override. Discarding the local commit anyway (see below)."
+  log "  session; if it keeps failing, check the branch name / push permissions"
+  log "  or set AGENTS_SETTINGS_BRANCH to override. Discarding the local commit"
+  log "  anyway (see below)."
 fi
 
 # Roll the session's checked-out branch back to where it started, discarding the
