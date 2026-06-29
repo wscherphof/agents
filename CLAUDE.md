@@ -61,10 +61,13 @@ happens in the project directory.
 Because the remote session runs in an ephemeral container that is discarded
 when the session ends, **only pushed commits survive** — each session is a fresh
 clone from the remote, so don't rely on a local commit persisting on its own.
-Always push after committing. (Claude Code Web *may* persist a session's commits
-at session end by pushing them to a `claude/<session>` branch, but treat that as
-a backstop you don't control, not the intended path — push deliberately to the
-branch you mean.)
+Always push after committing. And commit **eagerly** — at each meaningful
+checkpoint, not just at session end — then push: anything left uncommitted (or
+committed but unpushed) is lost if the container is discarded mid-session, so
+frequent commit-and-push is what keeps your work recoverable. (Claude Code Web
+*may* persist a session's commits at session end by pushing them to a
+`claude/<session>` branch, but treat that as a backstop you don't control, not
+the intended path — push deliberately to the branch you mean.)
 
 There are two common routes:
 
@@ -76,6 +79,46 @@ There are two common routes:
   that branch** (do not create a new one), and commit and push directly to it.
   There may already be a PR for the branch — if so, **never suggest creating a
   new PR**; a `git push` simply adds the new commits to the existing PR.
+
+### Linking to project source files
+
+The harness's default guidance is to render file references as Markdown links
+whose URL is a path **relative to the workspace root**. That is correct for
+files in the `agents` repo itself (e.g. [conf/.env](conf/.env)), but **wrong for
+project source files**: the workspace root is the `agents` repo, `/src/` is
+gitignored there, so a relative link like `src/<repo>/foo.ts` resolves against
+the `agents` repo and 404s in Claude Code Web — the file isn't part of that
+repo.
+
+So for any file under `src/<AGENTS_GIT_REPO>/…` (the cloned project repo),
+**override the default and emit a full web URL into the project repo's remote**
+instead of a workspace-relative path. Build it from the values in
+[conf/.env](conf/.env):
+
+- **Branch (`<branch>`):** the branch currently checked out in the project repo
+  — `git -C src/<AGENTS_GIT_REPO> rev-parse --abbrev-ref HEAD`. (The link only
+  resolves on the remote once that branch — and the file — has been pushed; a
+  file you just created links cleanly only after the push.)
+- **Repo-relative path (`<path>`):** the file path with the
+  `src/<AGENTS_GIT_REPO>/` prefix stripped (so a component dir stays in the
+  path). URL-encode it (spaces → `%20`); leave the `/` separators as-is.
+- Never put the PAT in a rendered URL.
+
+URL format depends on the host:
+
+- **Azure DevOps** (`AZURE_DEVOPS_EXT_PAT` set):
+  `https://dev.azure.com/<AGENTS_GIT_ACCOUNT>/_git/<AGENTS_GIT_REPO>?path=/<path>&version=GB<branch>`
+  — append `&line=<n>&lineEnd=<n>&lineStartColumn=1&lineEndColumn=1` to anchor a
+  line (`GB` = git branch; the leading `/` on `path` is required).
+- **GitHub** (`GITHUB_PERSONAL_ACCESS_TOKEN` set):
+  `https://github.com/<AGENTS_GIT_ACCOUNT>/<AGENTS_GIT_REPO>/blob/<branch>/<path>`
+  — append `#L<n>` (or `#L<n>-L<m>`) to anchor lines.
+
+Example, with `AGENTS_GIT_ACCOUNT=merkatordev`, `AGENTS_GIT_REPO=GeoWEP`,
+`AGENTS_COMPONENT_DIR=components/geowep-ng`, the branch `my-session-branch`
+checked out, referencing line 42 of `src/GeoWEP/components/geowep-ng/app.ts` on
+Azure DevOps:
+`https://dev.azure.com/merkatordev/_git/GeoWEP?path=/components/geowep-ng/app.ts&version=GBmy-session-branch&line=42&lineEnd=42&lineStartColumn=1&lineEndColumn=1`
 
 ### Azure DevOps PRs
 
