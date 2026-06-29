@@ -105,31 +105,33 @@ You choose **which project a session drives by choosing a branch** in the Claude
 Code Web branch picker. Each branch carries its own [conf/.env](conf/.env)
 configuration plus that project's mirrored settings:
 
-![Selecting the geowep/ng branch in the Claude Code Web branch
+![Selecting the geowep-ng branch in the Claude Code Web branch
 picker](docs/images/branch-picker.png)
 
 - **`main`** — the base scaffolding template. Not tied to any project.
 - **PROJECT branch** (e.g. `geowep`) — configured for a whole repo. Derived from
   the lowercased repo name. Carries the mirrored _root_ settings.
-- **COMPONENT branch** (e.g. `geowep/ng`) — configured for one component of a
-  monorepo. Named `<project>/<component>`. Carries the root settings with the
+- **COMPONENT branch** (e.g. `geowep-ng`) — configured for one component of a
+  monorepo. Named `<project>-<component>`. Carries the root settings with the
   component's settings layered on top.
 
 The settings branch name is derived automatically from the project identity
-(`AGENTS_GIT_REPO` lowercased, plus the last path segment of the component dir),
-or set explicitly via `AGENTS_SETTINGS_BRANCH`. To onboard a new project or
-component, branch from `main`, set the project variables in
-[conf/.env](conf/.env), and start a session on it — the first run populates the
-branch.
+(`AGENTS_GIT_REPO` lowercased, plus the last path segment of the component dir
+joined with a hyphen), or set explicitly via `AGENTS_SETTINGS_BRANCH`. The
+hyphen join keeps a project-level branch (`geowep`) from colliding with a
+component one (`geowep-ng`) — a slash would make them a git directory/file
+conflict. To onboard a new project or component, branch from `main`, set the
+project variables in [conf/.env](conf/.env), and start a session on it — the
+first run populates the branch.
 
 This gives you a tree like:
 
 ```
 main
-├── geowep              # GeoWEP repo, whole
-│   └── geowep/ng       # GeoWEP "ng" component
-└── <next-project>
-    └── <next-project>/<component>
+├── geowep                       # GeoWEP repo, whole
+├── geowep-ng                    # GeoWEP "ng" component
+├── <next-project>
+└── <next-project>-<component>
 ```
 
 ## Set your PAT in the cloud Environment
