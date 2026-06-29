@@ -311,6 +311,10 @@ if [ -z "$target_branch" ]; then
   [ -n "$COMPONENT_REL" ] && target_branch="$target_branch/${COMPONENT_REL##*/}"
 fi
 
+# Remember where the session's checked-out branch started, so we can roll it
+# back after pushing (see the reset below). Captured before any commit moves it.
+session_head="$(git -C "$DEST" rev-parse HEAD)"
+
 git -C "$DEST" add -A
 if git -C "$DEST" diff --cached --quiet; then
   log "no changes to commit"
@@ -329,3 +333,15 @@ git -C "$DEST" \
 # that branch has diverged it fails loudly rather than clobbering other work.
 git -C "$DEST" push origin "HEAD:$target_branch" >&2
 log "committed and pushed to $target_branch"
+
+# Roll the session's checked-out branch back to where it started, discarding the
+# local merge commit (its content is now safely on the settings branch). Without
+# this, that lone commit sits ahead on the ephemeral claude/<session> branch, and
+# Claude Code Web's end-of-session persistence pushes it as a redundant
+# claude/<session> branch alongside the settings-branch push we just did. There
+# is no loss: the merged settings live on the settings branch (their permanent
+# home, which future sessions clone from), and the current session keeps using
+# the settings its own clone started with — it never consumes this fresh commit.
+# Only runs after a successful push, so an unpushed commit is never discarded.
+git -C "$DEST" reset --hard "$session_head" >&2
+log "reset session branch to $session_head (settings live on $target_branch)"
