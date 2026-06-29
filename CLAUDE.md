@@ -27,6 +27,16 @@ In a remote session, a Claude Code Web session starts in **this** repo (the
 settings/instructions back into this repo. Keep the two repos' git workflows
 separate:
 
+## Naming the session
+
+Prefix this Claude Code session's name with the **agents repo branch we started
+from** — the project's settings branch, which is `<repo>` or `<repo>-<component>`
+(get it with `git rev-parse --abbrev-ref HEAD` at the workspace root; e.g.
+`geowep` or `geowep-ng`). So a session about merging settings becomes
+`geowep-ng: settings merge in start session hook`. This makes it obvious at a
+glance, in the Recents list, which project (and component) each session is
+working on.
+
 ## This repo (`agents`, workspace root)
 
 Holds the agent scaffolding and the mirrored settings/instructions. The
@@ -74,6 +84,10 @@ There are two common routes:
 - **Starting fresh work.** The edits must land on a **new branch, named after
   this Claude Code session** — never commit them directly to the branch the
   clone checked out (e.g. `master`/`main`). Open a PR from that branch as usual.
+  Don't prefix the branch with the project name (the branch already lives in
+  that repo), but **do** prefix it with the `<component>` when a component is
+  configured (the same `-<component>` suffix the settings branch uses, e.g.
+  `geowep-ng-add-login`) so a monorepo component's branches are easy to spot.
 - **Continuing work on an existing feature branch.** Just as common: a new
   session is started to pick up an existing branch. In that case **check out
   that branch** (do not create a new one), and commit and push directly to it.
