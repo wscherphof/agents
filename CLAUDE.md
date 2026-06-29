@@ -85,6 +85,12 @@ out, the install is probably still running — wait a bit and retry; check
 for progress. `git push` itself does not depend on `az` (it authenticates via
 the PAT in the remote URL), so push first, then create the PR once `az` is up.
 
+When the session prompt mentions a specific work item (e.g. `#123`) and you
+create a PR, **link that work item to the PR automatically** — pass
+`--work-items <id>` to `az repos pr create` (or run `az repos pr work-item add
+--id <pr-id> --work-items <id>` on an already-created PR). Just mention that
+you've linked it; don't ask whether the link is wanted.
+
 On Azure DevOps, **pull requests are referenced with a `!`-prefix** (e.g.
 `!123`), while **work items** (issues, features, bugs, tasks) use a `#`-prefix
 (e.g. `#123`) as on GitHub. These are separate number spaces, so `!123` and
