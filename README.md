@@ -66,6 +66,21 @@ cloud session always processes it. It is separate from, and layered on top of,
 the project repo's own `CLAUDE.md` that step 5 mirrors in. On the `main`
 template branch it is intentionally empty.
 
+### The `conf/.env` configuration
+
+[conf/.env](conf/.env) is where you point a branch at its project (and
+component) and tune per-project behavior. It is committed per settings branch;
+on `main` the mandatory values are blank. The full set of knobs:
+
+| Variable                    | Req. | Meaning                                                                                                                                                                                                        |
+| --------------------------- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AGENTS_GIT_ACCOUNT`        | yes  | The git account/org that owns the project repo (e.g. `merkatordev`).                                                                                                                                            |
+| `AGENTS_GIT_REPO`           | yes  | The project repo name (e.g. `GeoWEP`).                                                                                                                                                                          |
+| `AGENTS_COMPONENT_DIR`      | no   | Relative path to a monorepo component to scope the session to (e.g. `components/geowep-ng`). Blank = whole repo.                                                                                                |
+| `AGENTS_START_DOCKER`       | no   | `true` to start the Docker daemon at session start (image must already have Docker installed). Blank = off.                                                                                                     |
+| `AGENTS_INTEGRATION_BRANCH` | no   | Project-repo branch to target PRs at (when it exists) instead of the default `main`/`master`. Blank = target the default. See [Where the PR targets](#two-repos-two-git-workflows).                              |
+| `AGENTS_SETTINGS_BRANCH`    | no   | Override the auto-derived settings-branch name the hook pushes mirrored settings to. Blank = derive from the project identity (`<repo>` / `<repo>-<component>`). Not in the template file; set it only if needed. |
+
 ### Variables for your setup scripts
 
 [conf/PROJECT.sh](conf/PROJECT.sh) and [conf/COMPONENT.sh](conf/COMPONENT.sh)
@@ -79,11 +94,9 @@ reuse shared helpers without hard-coding paths:
 | `AGENTS_REPO_DIR`      | Absolute path to the cloned project repo (`src/<AGENTS_GIT_REPO>`). `PROJECT.sh` runs with this as its working directory.                                                                                                                           |
 | `AGENTS_COMPONENT_DIR` | Absolute path to the component directory — `AGENTS_REPO_DIR` joined with the `AGENTS_COMPONENT_DIR` set in [conf/.env](conf/.env), or the repo root if none is set. `COMPONENT.sh` runs with this as its working directory. (Note: the [conf/.env](conf/.env) input is a _relative_ path; the exported value is the _resolved absolute_ one.) |
 | `AGENTS_TOOLS_DIR`     | Absolute path to [tools/](tools/), the reusable setup helpers (e.g. `pin_node_version.sh`, `srclink.sh`). Call them as `"$AGENTS_TOOLS_DIR/pin_node_version.sh"`.                                                                                     |
-| `AGENTS_INTEGRATION_BRANCH` | Optional, from [conf/.env](conf/.env). The project-repo branch to target PRs at (when it exists) instead of the default `main`/`master`; blank means target the default. **Not exported to the setup scripts** — it's read by the agent when opening PRs (see [Where the PR targets](#two-repos-two-git-workflows)). Listed here only as the remaining `conf/.env` knob.                                                    |
 
-Except for `AGENTS_INTEGRATION_BRANCH` (agent-read, above), these are only
-exported within the session-start hook's setup subshell, so they are available
-to `PROJECT.sh`/`COMPONENT.sh` but not to the session afterward.
+These are only exported within the session-start hook's setup subshell, so they
+are available to `PROJECT.sh`/`COMPONENT.sh` but not to the session afterward.
 
 ## Fork it — there's nothing to install
 
