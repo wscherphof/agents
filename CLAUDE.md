@@ -154,7 +154,8 @@ even though its path doesn't visibly start with `src/`.
 puts it on PATH (it's [tools/srclink.sh](tools/srclink.sh)). Run it from the
 project working dir and pass the same path you'd `cat`/`ls`; it derives the
 host/account/repo/branch from the project repo's own checkout and prints a
-ready-to-paste Markdown link (PAT stripped, path URL-encoded):
+ready-to-paste Markdown link (PAT stripped, path URL-encoded). (It also builds
+issue/work-item/PR links — see "Linking to issues, work items, and PRs" below.)
 
 ```
 srclink docker/ng/CODE-REVIEW.md                 # whole file
@@ -194,6 +195,43 @@ checked out, referencing line 42 of `src/GeoWEP/components/geowep-ng/app.ts` on
 Azure DevOps:
 `https://dev.azure.com/merkatordev/_git/GeoWEP?path=/components/geowep-ng/app.ts&version=GBmy-session-branch&line=42&lineEnd=42&lineStartColumn=1&lineEndColumn=1`
 
+### Linking to issues, work items, and PRs
+
+The same workspace-root trap applies to **issue / work-item / pull-request
+references**, and worse: a bare `#123` or `!123` auto-links against the
+**workspace root — the `agents` repo**, so it points at (or 404s on) the wrong
+repo entirely. These references belong to the **project repo**, so their links
+must resolve on the project repo's host.
+
+**Always render such references as clickable Markdown links** — never leave a
+bare `#123` / `!123` in your output. Any time you mention an issue, work item, or
+PR of the project, emit it as a link the user can click to open it.
+
+**Use the same `srclink` helper** — it also does references (run it from the
+project working dir). It uses the CLAUDE.md prefix convention: `#` = issue /
+work item, `!` = pull request.
+
+```
+srclink '#123'                 # issue / work item link into the project repo
+srclink '!456' "the PR"        # pull request link into the project repo
+```
+
+(Quote the argument so the shell doesn't treat `#` as a comment.) It derives the
+host/account/repo from the project repo's own origin, so the links are correct
+for GitHub **and** Azure DevOps automatically.
+
+If `srclink` isn't available, build the URL by hand against the **project repo's**
+remote (account/repo from [conf/.env](conf/.env), never the `agents` repo, PAT
+never rendered):
+
+- **GitHub:** issue → `https://github.com/<account>/<repo>/issues/<n>`; PR →
+  `https://github.com/<account>/<repo>/pull/<n>` (GitHub cross-redirects the two,
+  so either resolves).
+- **Azure DevOps:** work item → `https://dev.azure.com/<org>/_workitems/edit/<n>`
+  (work-item IDs are unique org-wide, so no project segment is needed); PR →
+  `https://dev.azure.com/<account>/_git/<repo>/pullrequest/<n>` (`<account>` is
+  the same `<org>`-or-`<org>/<project>` segment used for file links above).
+
 ### Azure DevOps PRs
 
 When the repo lives on Azure DevOps (`AZURE_DEVOPS_EXT_PAT` is set), the
@@ -216,7 +254,9 @@ On Azure DevOps, **pull requests are referenced with a `!`-prefix** (e.g.
 (e.g. `#123`) as on GitHub. These are separate number spaces, so `!123` and
 `#123` are different objects. When writing PR references, always use `!<number>`
 — never `#<number>`, which renders a short link to a (possibly non-existent)
-work item rather than the PR.
+work item rather than the PR. When rendering either as a clickable link, use
+`srclink '!<n>'` / `srclink '#<n>'` so it points at the project repo (see
+"Linking to issues, work items, and PRs" above).
 
 ### Docker
 

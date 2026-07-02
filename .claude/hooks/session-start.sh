@@ -48,9 +48,10 @@ dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   AGENTS_TOOLS_DIR=$CLAUDE_PROJECT_DIR/tools
   export AGENTS_TOOLS_DIR
 
-  # Put `srclink` on PATH so Claude can turn a project source path into a web
-  # link to the project repo's host (instead of a broken workspace-relative
-  # one). ~/.local/bin is ahead of the Bash tool's login-shell PATH.
+  # Put `srclink` on PATH so Claude can turn a project source path — or an
+  # issue/work-item/PR reference — into a web link to the project repo's host
+  # (instead of a broken workspace-relative one). ~/.local/bin is ahead of the
+  # Bash tool's login-shell PATH.
   echo "• Linking srclink onto PATH..."
   mkdir -p "$HOME/.local/bin"
   ln -sf "$AGENTS_TOOLS_DIR/srclink.sh" "$HOME/.local/bin/srclink"
