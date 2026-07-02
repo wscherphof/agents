@@ -123,12 +123,14 @@ that was never given a PR). If a PR already exists, don't create another; the
 push you just did already updated it. So: finish the work, commit, push, then
 ensure a PR is open for the branch.
 
-**PR target branch.** If the project repo has an `integration` branch, **target
-the PR at `integration`** instead of the checked-out default (`main`/`master`).
-Check with e.g. `git -C src/<AGENTS_GIT_REPO> ls-remote --heads origin
-integration` (or `git branch -a`); if it exists, pass it as the PR's target
-(`--base integration` on GitHub, `--target-branch integration` on Azure DevOps).
-Otherwise target the default branch as usual.
+**PR target branch.** Read `AGENTS_INTEGRATION_BRANCH` from
+[conf/.env](conf/.env). If it is **blank**, target the PR at the checked-out
+default branch (`main`/`master`) as usual. If it is **set**, and that branch
+exists in the project repo, **target the PR at it** instead. Check with e.g.
+`git -C src/<AGENTS_GIT_REPO> ls-remote --heads origin <branch>` (or `git branch
+-a`); if it exists, pass it as the PR's target (`--base <branch>` on GitHub,
+`--target-branch <branch>` on Azure DevOps). Otherwise (variable unset, or the
+named branch doesn't exist) target the default branch.
 
 ### Linking to project source files
 
