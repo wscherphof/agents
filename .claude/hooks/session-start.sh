@@ -8,7 +8,7 @@ set -uo pipefail
 conf_dir="$CLAUDE_PROJECT_DIR/conf"
 # shellcheck source=/dev/null
 [ -f "$conf_dir/.env" ] && . "$conf_dir/.env"
-: "${AGENTS_GIT_ACCOUNT:=}" "${AGENTS_GIT_REPO:=}" "${AGENTS_COMPONENT_DIR:=}" "${AGENTS_START_DOCKER:=}"
+: "${AGENTS_GIT_ACCOUNT:=}" "${AGENTS_GIT_REPO:=}" "${AGENTS_COMPONENT_DIR:=}" "${AGENTS_START_DOCKER:=}" "${AGENTS_INTEGRATION_BRANCH:=}" "${AGENTS_SETTINGS_BRANCH:=}"
 
 # You should set either AZURE_DEVOPS_EXT_PAT or GITHUB_PERSONAL_ACCESS_TOKEN in
 # your environment before starting the session. The script will use whichever is
@@ -59,6 +59,11 @@ dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   export AGENTS_REPO_DIR
   export AGENTS_GIT_ACCOUNT
   export AGENTS_GIT_REPO
+  # The remaining conf/.env knobs, exported so PROJECT.sh/COMPONENT.sh (and the
+  # merge script, which reads AGENTS_SETTINGS_BRANCH) see them as env vars.
+  export AGENTS_START_DOCKER
+  export AGENTS_INTEGRATION_BRANCH
+  export AGENTS_SETTINGS_BRANCH
 
   session_start_dir=$dir/session-start
   scripts_dir=$session_start_dir/scripts
