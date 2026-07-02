@@ -177,3 +177,10 @@ Your **starting prompt** decides which of the two project-repo routes applies:
   feature branch" — checks out that branch instead of creating one, and commits
   and pushes directly to it. If it already has a PR, the push just adds to that
   PR; no new one is created.
+
+**Where the PR targets.** By default the agent targets the PR at the checked-out
+default branch (`main`/`master`). To point PRs at an integration branch instead,
+set `AGENTS_INTEGRATION_BRANCH` in [conf/.env](conf/.env) to that branch's name
+(e.g. `integration` or `develop`) on the project branch: when set, and the named
+branch exists in the project repo, the agent targets the PR at it. Left blank,
+PRs target the default branch as usual.
