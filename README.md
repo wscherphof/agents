@@ -84,19 +84,21 @@ on `main` the mandatory values are blank. The full set of knobs:
 ### Variables for your setup scripts
 
 [conf/PROJECT.sh](conf/PROJECT.sh) and [conf/COMPONENT.sh](conf/COMPONENT.sh)
-run with these `AGENTS_*` variables exported, so they can locate the clone and
-reuse shared helpers without hard-coding paths:
+run with the [`conf/.env`](#the-confenv-configuration) values above exported —
+with `AGENTS_COMPONENT_DIR` resolved from its relative form to an absolute path —
+**plus** these two derived paths, so they can locate the clone and reuse shared
+helpers without hard-coding:
 
-| Variable               | Value                                                                                                                                                                                                                                              |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `AGENTS_GIT_ACCOUNT`   | The git account/org that owns the project repo, from [conf/.env](conf/.env).                                                                                                                                                                        |
-| `AGENTS_GIT_REPO`      | The project repo name, from [conf/.env](conf/.env).                                                                                                                                                                                                 |
-| `AGENTS_REPO_DIR`      | Absolute path to the cloned project repo (`src/<AGENTS_GIT_REPO>`). `PROJECT.sh` runs with this as its working directory.                                                                                                                           |
-| `AGENTS_COMPONENT_DIR` | Absolute path to the component directory — `AGENTS_REPO_DIR` joined with the `AGENTS_COMPONENT_DIR` set in [conf/.env](conf/.env), or the repo root if none is set. `COMPONENT.sh` runs with this as its working directory. (Note: the [conf/.env](conf/.env) input is a _relative_ path; the exported value is the _resolved absolute_ one.) |
-| `AGENTS_TOOLS_DIR`     | Absolute path to [tools/](tools/), the reusable setup helpers (e.g. `pin_node_version.sh`, `srclink.sh`). Call them as `"$AGENTS_TOOLS_DIR/pin_node_version.sh"`.                                                                                     |
+| Variable          | Value                                                                                                                                                            |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AGENTS_REPO_DIR` | Absolute path to the cloned project repo (`src/<AGENTS_GIT_REPO>`). `PROJECT.sh` runs with this as its working directory.                                         |
+| `AGENTS_TOOLS_DIR` | Absolute path to [tools/](tools/), the reusable setup helpers (e.g. `pin_node_version.sh`, `srclink.sh`). Call them as `"$AGENTS_TOOLS_DIR/pin_node_version.sh"`. |
 
-These are only exported within the session-start hook's setup subshell, so they
-are available to `PROJECT.sh`/`COMPONENT.sh` but not to the session afterward.
+`AGENTS_COMPONENT_DIR` — the resolved absolute path (`AGENTS_REPO_DIR` joined
+with the relative `conf/.env` value, or the repo root if none is set) — is
+`COMPONENT.sh`'s working directory. All of these are only exported within the
+session-start hook's setup subshell, so they are available to
+`PROJECT.sh`/`COMPONENT.sh` but not to the session afterward.
 
 ## Fork it — there's nothing to install
 
