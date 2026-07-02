@@ -15,3 +15,6 @@ On the `main` template branch this file is intentionally empty. Fill it in on
 each project/component branch. Write plain Markdown instructions directly below
 this comment.
 -->
+
+If the prompt mentions a work item on Azure DevOps, and that work item is
+currently in state To Do, start off with moving that work item to state Doing.
