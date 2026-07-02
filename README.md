@@ -79,9 +79,11 @@ reuse shared helpers without hard-coding paths:
 | `AGENTS_REPO_DIR`      | Absolute path to the cloned project repo (`src/<AGENTS_GIT_REPO>`). `PROJECT.sh` runs with this as its working directory.                                                                                                                           |
 | `AGENTS_COMPONENT_DIR` | Absolute path to the component directory — `AGENTS_REPO_DIR` joined with the `AGENTS_COMPONENT_DIR` set in [conf/.env](conf/.env), or the repo root if none is set. `COMPONENT.sh` runs with this as its working directory. (Note: the [conf/.env](conf/.env) input is a _relative_ path; the exported value is the _resolved absolute_ one.) |
 | `AGENTS_TOOLS_DIR`     | Absolute path to [tools/](tools/), the reusable setup helpers (e.g. `pin_node_version.sh`, `srclink.sh`). Call them as `"$AGENTS_TOOLS_DIR/pin_node_version.sh"`.                                                                                     |
+| `AGENTS_INTEGRATION_BRANCH` | Optional, from [conf/.env](conf/.env). The project-repo branch to target PRs at (when it exists) instead of the default `main`/`master`; blank means target the default. **Not exported to the setup scripts** — it's read by the agent when opening PRs (see [Where the PR targets](#two-repos-two-git-workflows)). Listed here only as the remaining `conf/.env` knob.                                                    |
 
-These are only exported within the session-start hook's setup subshell, so they
-are available to `PROJECT.sh`/`COMPONENT.sh` but not to the session afterward.
+Except for `AGENTS_INTEGRATION_BRANCH` (agent-read, above), these are only
+exported within the session-start hook's setup subshell, so they are available
+to `PROJECT.sh`/`COMPONENT.sh` but not to the session afterward.
 
 ## Fork it — there's nothing to install
 
