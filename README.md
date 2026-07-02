@@ -79,7 +79,6 @@ on `main` the mandatory values are blank. The full set of knobs:
 | `AGENTS_COMPONENT_DIR`      | no   | Relative path to a monorepo component to scope the session to (e.g. `components/geowep-ng`). Blank = whole repo.                                                                                                |
 | `AGENTS_START_DOCKER`       | no   | `true` to start the Docker daemon at session start (image must already have Docker installed). Blank = off.                                                                                                     |
 | `AGENTS_INTEGRATION_BRANCH` | no   | Project-repo branch to target PRs at (when it exists) instead of the default `main`/`master`. Blank = target the default. See [Where the PR targets](#two-repos-two-git-workflows).                              |
-| `AGENTS_SETTINGS_BRANCH`    | no   | Override the auto-derived settings-branch name the hook pushes mirrored settings to. Blank = derive from the project identity (`<repo>` / `<repo>-<component>`). Not in the template file; set it only if needed. |
 
 ### Variables for your setup scripts
 
