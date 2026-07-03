@@ -120,11 +120,11 @@ There are two common routes:
   clone checked out (e.g. `master`/`main`). Open a PR from that branch as usual.
   Don't prefix the branch with the project name (the branch already lives in
   that repo), but **do** prefix it with the `<component>` when a component is
-  configured (the same prefix the agents repo's settings branch uses, e.g.
-  `ng`) so a monorepo component's feature branches are easy to spot amidst
-  feature branches of other components. The branch name mirrors the session name
-  (see "Naming the session"), joined with `-` rather than `: `/spaces — so when
-  the initial prompt names a work item / issue:
+  configured (the same prefix the agents repo's settings branch uses, e.g. `ng`)
+  so a monorepo component's feature branches are easy to spot amidst feature
+  branches of other components. The branch name mirrors the session name (see
+  "Naming the session"), joined with `-` rather than `: `/spaces — so when the
+  initial prompt names a work item / issue:
 
   ```
   ng-<work item type>-<work item number>-<work item title>
@@ -138,6 +138,7 @@ There are two common routes:
 
   e.g. `ng-add-login`. (Drop the component prefix when no component is
   configured.)
+
 - **Continuing work on an existing feature branch.** Just as common: a new
   session is started to pick up an existing branch. In that case **check out
   that branch** (do not create a new one), and commit and push directly to it.
@@ -232,8 +233,8 @@ repo entirely. These references belong to the **project repo**, so their links
 must resolve on the project repo's host.
 
 **Always render such references as clickable Markdown links** — never leave a
-bare `#123` / `!123` in your output. Any time you mention an issue, work item, or
-PR of the project, emit it as a link the user can click to open it.
+bare `#123` / `!123` in your output. Any time you mention an issue, work item,
+or PR of the project, emit it as a link the user can click to open it.
 
 **Use the same `srclink` helper** — it also does references (run it from the
 project working dir). It uses the CLAUDE.md prefix convention: `#` = issue /
@@ -248,15 +249,16 @@ srclink '!456' "the PR"        # pull request link into the project repo
 host/account/repo from the project repo's own origin, so the links are correct
 for GitHub **and** Azure DevOps automatically.
 
-If `srclink` isn't available, build the URL by hand against the **project repo's**
-remote (account/repo from [conf/.env](conf/.env), never the `agents` repo, PAT
-never rendered):
+If `srclink` isn't available, build the URL by hand against the **project
+repo's** remote (account/repo from [conf/.env](conf/.env), never the `agents`
+repo, PAT never rendered):
 
 - **GitHub:** issue → `https://github.com/<account>/<repo>/issues/<n>`; PR →
-  `https://github.com/<account>/<repo>/pull/<n>` (GitHub cross-redirects the two,
-  so either resolves).
-- **Azure DevOps:** work item → `https://dev.azure.com/<org>/_workitems/edit/<n>`
-  (work-item IDs are unique org-wide, so no project segment is needed); PR →
+  `https://github.com/<account>/<repo>/pull/<n>` (GitHub cross-redirects the
+  two, so either resolves).
+- **Azure DevOps:** work item →
+  `https://dev.azure.com/<org>/_workitems/edit/<n>` (work-item IDs are unique
+  org-wide, so no project segment is needed); PR →
   `https://dev.azure.com/<account>/_git/<repo>/pullrequest/<n>` (`<account>` is
   the same `<org>`-or-`<org>/<project>` segment used for file links above).
 
