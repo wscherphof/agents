@@ -58,6 +58,20 @@ their own wording if they prefer. Do this once, near the start — don't nag on
 later turns. If the first prompt shows the session name is already prefixed
 (e.g. a resumed session), say nothing.
 
+**When the initial prompt names a work item (Azure DevOps) or issue (GitHub)
+number, follow that instead** of an invented description: insert the number
+right after the branch prefix, then `: `, then the work item / issue title. So
+the line becomes
+
+```
+/rename geowep-ng <work item number>: <work item title>
+```
+
+e.g. `/rename geowep-ng 1234: Fix login redirect loop`. Look up the title from
+the tracker (`az boards work-item show --id <n>` on Azure DevOps, `gh issue view
+<n>` on GitHub) rather than guessing it; fall back to a short description of the
+work only if the number can't be resolved.
+
 ## This repo (`agents`, workspace root)
 
 Holds the agent scaffolding and the mirrored settings/instructions. The
