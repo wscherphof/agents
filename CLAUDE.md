@@ -120,10 +120,24 @@ There are two common routes:
   clone checked out (e.g. `master`/`main`). Open a PR from that branch as usual.
   Don't prefix the branch with the project name (the branch already lives in
   that repo), but **do** prefix it with the `<component>` when a component is
-  configured (the same `-<component>` suffix the agents repo's settings branch
-  uses; src repo feature branch name e.g. `ng-add-login`) so a monorepo
-  component's feature branches are easy to spot amidst feature branches of other
-  components.
+  configured (the same prefix the agents repo's settings branch uses, e.g.
+  `ng`) so a monorepo component's feature branches are easy to spot amidst
+  feature branches of other components. The branch name mirrors the session name
+  (see "Naming the session"), joined with `-` rather than `: `/spaces — so when
+  the initial prompt names a work item / issue:
+
+  ```
+  ng-<work item type>-<work item number>-<work item title>
+  ```
+
+  e.g. `ng-Bug-1234-fix-login-redirect-loop`; otherwise:
+
+  ```
+  ng-<short description of this session's work>
+  ```
+
+  e.g. `ng-add-login`. (Drop the component prefix when no component is
+  configured.)
 - **Continuing work on an existing feature branch.** Just as common: a new
   session is started to pick up an existing branch. In that case **check out
   that branch** (do not create a new one), and commit and push directly to it.
