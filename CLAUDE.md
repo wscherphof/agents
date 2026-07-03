@@ -43,9 +43,9 @@ Recents list, which project (and component) each session is working on.
 **You cannot rename the session yourself** — there is no tool for it, and by the
 time you read this the platform has already auto-named the session from the
 first prompt. Only the user can rename it (the `/rename` command), so the prefix
-won't appear unless you prompt them. Therefore, **early in a remote project
-session, proactively suggest the rename**: emit, for the user to run, a single
-ready-to-paste line of the form
+won't appear unless you prompt them. Therefore, **at the very start of a remote
+project session, proactively suggest the rename**: emit, for the user to run, a
+single ready-to-paste line of the form
 
 ```
 /rename geowep-ng: <short description of this session's work>
