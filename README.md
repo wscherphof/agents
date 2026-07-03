@@ -197,3 +197,25 @@ set `AGENTS_INTEGRATION_BRANCH` in [conf/.env](conf/.env) to that branch's name
 (e.g. `integration` or `develop`) on the project branch: when set, and the named
 branch exists in the project repo, the agent targets the PR at it. Left blank,
 PRs target the default branch as usual.
+
+### Rolling up the integration branch: `/integration-pr`
+
+Once a batch of feature PRs has merged into your `AGENTS_INTEGRATION_BRANCH`,
+you eventually want to promote the whole batch to `main`/`master`. The
+[`/integration-pr`](.claude/skills/integration-pr/SKILL.md) skill opens that
+rollup PR for you: it merges the integration branch into the project's default
+branch and writes a description that lists every earlier PR the batch comprises,
+each as a link.
+
+It works on **both hosts**: a helper reads the merge/squash commit messages in
+`origin/<default>..origin/<integration>` to recover the constituent PR numbers
+(host auto-detected from the session's PAT), and references them by bare `#123`
+(GitHub) / `!123` (Azure DevOps) so each renders as a full link — type and title
+included — in the PR description. It won't open a duplicate if an integration PR
+is already open (it updates that one instead), and it finishes by printing a
+clickable link to the PR so you can open it in the browser.
+
+Run it as the slash command `/integration-pr`, or just ask ("open the
+integration PR"). It only applies in a remote project session with
+`AGENTS_INTEGRATION_BRANCH` set — otherwise there is no integration branch to
+roll up.
