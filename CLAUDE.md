@@ -59,15 +59,15 @@ later turns. If the first prompt shows the session name is already prefixed
 (e.g. a resumed session), say nothing.
 
 **When the initial prompt names a work item (Azure DevOps) or issue (GitHub)
-number, follow that instead** of an invented description: insert the work item
-type (`Bug`/`Task`/`Support`/…) and number right after the branch prefix, then
-`: `, then the work item / issue title. So the line becomes
+number, follow that instead** of an invented description: after the branch
+prefix and `: `, put the work item type (`Bug`/`Task`/`Support`/…), the number,
+and the work item / issue title, space-separated. So the line becomes
 
 ```
-/rename geowep-ng <work item type> <work item number>: <work item title>
+/rename geowep-ng: <work item type> <work item number> <work item title>
 ```
 
-e.g. `/rename geowep-ng Bug 1234: Fix login redirect loop`. Look up the type and
+e.g. `/rename geowep-ng: Bug 1234 Fix login redirect loop`. Look up the type and
 title from the tracker (`az boards work-item show --id <n>` on Azure DevOps, `gh
 issue view <n>` on GitHub) rather than guessing them; fall back to a short
 description of the work only if the number can't be resolved.
