@@ -118,26 +118,30 @@ There are two common routes:
 - **Starting fresh work.** The edits must land on a **new branch, named after
   this Claude Code session** — never commit them directly to the branch the
   clone checked out (e.g. `master`/`main`). Open a PR from that branch as usual.
-  Don't prefix the branch with the project name (the branch already lives in
-  that repo), but **do** prefix it with the `<component>` when a component is
-  configured (the same prefix the agents repo's settings branch uses, e.g. `ng`)
-  so a monorepo component's feature branches are easy to spot amidst feature
-  branches of other components. The branch name mirrors the session name (see
-  "Naming the session"), joined with `-` rather than `: `/spaces — so when the
-  initial prompt names a work item / issue:
+  **Always keep the `claude/` prefix at the very start of the branch name** — it
+  marks the branch as agent-authored and keeps Claude Code Web's own
+  `claude/<session>` backstop namespace consistent. Don't prefix the branch with
+  the project name (the branch already lives in that repo), but after `claude/`
+  **do** prefix it with the `<component>` when a component is configured (the
+  same prefix the agents repo's settings branch uses, e.g. `ng`) so a monorepo
+  component's feature branches are easy to spot amidst feature branches of other
+  components. The branch name mirrors the session name (see "Naming the
+  session"), joined with `-` rather than `: `/spaces — so when the initial
+  prompt names a work item / issue:
 
   ```
-  ng-<work item type>-<work item number>-<work item title>
+  claude/ng-<work item type>-<work item number>-<work item title>
   ```
 
-  e.g. `ng-Bug-1234-fix-login-redirect-loop`; otherwise:
+  e.g. `claude/ng-Bug-1234-fix-login-redirect-loop`; otherwise:
 
   ```
-  ng-<short description of this session's work>
+  claude/ng-<short description of this session's work>
   ```
 
-  e.g. `ng-add-login`. (Drop the component prefix when no component is
-  configured.)
+  e.g. `claude/ng-add-login`. (Drop the component prefix — the `ng-` segment,
+  not the `claude/` prefix — when no component is configured, e.g.
+  `claude/add-login`.)
 
 - **Continuing work on an existing feature branch.** Just as common: a new
   session is started to pick up an existing branch. In that case **check out
