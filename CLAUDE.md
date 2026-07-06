@@ -54,9 +54,10 @@ first prompt. Only the user can rename it (the `/rename` command), so the prefix
 won't appear unless you prompt them. Therefore, **this must be among the very
 first things you do in a remote project session — emit the rename suggestion
 before you start on the actual work**, so the session is properly named while it
-runs (the user relies on the Recents list to tell running sessions apart). Don't
-finish the task and then suggest it. Proactively emit, for the user to run, a
-single ready-to-paste line of the form
+runs (the user relies on the Recents list to tell running sessions apart). Do it
+up front no matter how quick the task looks; you'll repeat it at the very end
+only if the rename still hasn't happened by then (see below). Proactively emit,
+for the user to run, a single ready-to-paste line of the form
 
 ```
 /rename geowep-ng: <short description of this session's work>
@@ -65,9 +66,19 @@ single ready-to-paste line of the form
 i.e. the project prefix, then `: `, then a concise description. You don't have
 access to the platform's auto-generated session name, so derive the description
 from the first prompt / the work at hand (a handful of words); the user can keep
-their own wording if they prefer. Do this once, near the start — don't nag on
-later turns. If the first prompt shows the session name is already prefixed
-(e.g. a resumed session), say nothing.
+their own wording if they prefer.
+
+**Emit it at up to two points: always near the start — about the first thing you
+do — and again at the very end, but only if the rename still hasn't happened by
+then.** Skip the start emission only for a resumed session whose first prompt
+already shows a prefixed name. The closing repeat is a convenience — it puts the
+paste line back within reach so the user needn't scroll to the top of the
+session to find it. Before the closing emission, scan the transcript
+and stay silent if a `/rename` command already appears (the user has renamed the
+session — local slash commands show up in the transcript, so an in-session
+rename is visible) or the name is already prefixed; re-suggest at the end only
+when the session still needs renaming. Never repeat it once a `/rename` is in
+play — a closing remark on an already-correctly-named session is just noise.
 
 **When the initial prompt names a work item (Azure DevOps) or issue (GitHub)
 number, follow that instead** of an invented description: after the project
