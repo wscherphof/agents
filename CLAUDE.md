@@ -34,18 +34,19 @@ separate:
 
 The session name must be **prefixed with the exact name of the agents-repo
 settings branch this project uses.** Do **not** read it from `git rev-parse
---abbrev-ref HEAD`: in a remote session the workspace root (the `agents` repo) is
-checked out on an **ephemeral `claude/<id>` branch, not the settings branch**, so
-that command returns the wrong name (e.g. `claude/test-session-c5713q`, which is
-how this used to go wrong). Instead **derive it from [conf/.env](conf/.env),
-exactly as the session-start hook does** (section 8 of
+--abbrev-ref HEAD`: in a remote session the workspace root (the `agents` repo)
+is checked out on an **ephemeral `claude/<id>` branch, not the settings
+branch**, so that command returns the wrong name (e.g.
+`claude/test-session-c5713q`, which is how this used to go wrong). Instead
+**derive it from [conf/.env](conf/.env), exactly as the session-start hook
+does** (section 8 of
 [merge-agent-settings.sh](.claude/hooks/session-start/scripts/merge-agent-settings.sh)):
-lowercase `AGENTS_GIT_REPO`, and if `AGENTS_COMPONENT_DIR` is set, append `-` and
-its **last path segment** — but first strip a redundant leading `<repo>-` from
-that segment (some layouts repeat the project name in the component dir so it is
-recognizable as an IDE root, e.g. `components/geowep-ng`; that must still yield
-`geowep-ng`, not `geowep-geowep-ng`). `AGENTS_SETTINGS_BRANCH` overrides the whole
-scheme when set. Compute it mechanically from the workspace root:
+lowercase `AGENTS_GIT_REPO`, and if `AGENTS_COMPONENT_DIR` is set, append `-`
+and its **last path segment** — but first strip a redundant leading `<repo>-`
+from that segment (some layouts repeat the project name in the component dir so
+it is recognizable as an IDE root, e.g. `components/geowep-ng`; that must still
+yield `geowep-ng`, not `geowep-geowep-ng`). `AGENTS_SETTINGS_BRANCH` overrides
+the whole scheme when set. Compute it mechanically from the workspace root:
 
 ```
 b="${AGENTS_SETTINGS_BRANCH:-}"
@@ -61,16 +62,16 @@ fi
 echo "$b"
 ```
 
-So `AGENTS_GIT_REPO=GeoWEP` yields `geowep-ng` for `AGENTS_COMPONENT_DIR=docker/ng`
-**and** for `AGENTS_COMPONENT_DIR=components/geowep-ng`. Use that whole name as the
-prefix — same casing, same suffix; don't
-type it from memory and don't shorten, expand, or re-case any part of it. In
-particular, **do not use the shortened component form** that `claude/` feature
-branches use (e.g. `ng`): the session prefix is always the *whole*
-settings-branch name — so `geowep-ng`, never just `ng`. A session whose
-auto-generated name is `settings merge in start session hook` becomes `geowep-ng:
-settings merge in start session hook`. This makes it obvious at a glance, in the
-Recents list, which session is working on what.
+So `AGENTS_GIT_REPO=GeoWEP` yields `geowep-ng` for
+`AGENTS_COMPONENT_DIR=docker/ng` **and** for
+`AGENTS_COMPONENT_DIR=components/geowep-ng`. Use that whole name as the prefix —
+same casing, same suffix; don't type it from memory and don't shorten, expand,
+or re-case any part of it. In particular, **do not use the shortened component
+form** that `claude/` feature branches use (e.g. `ng`): the session prefix is
+always the _whole_ settings-branch name — so `geowep-ng`, never just `ng`. A
+session whose auto-generated name is `settings merge in start session hook`
+becomes `geowep-ng: settings merge in start session hook`. This makes it obvious
+at a glance, in the Recents list, which session is working on what.
 
 **Note the contrast with the feature-branch prefix** (see "Starting fresh work"
 below): the session prefix is the **entire** settings-branch name (`geowep-ng:
@@ -85,21 +86,20 @@ first things you do in a remote project session — emit the rename suggestion
 before you start on the actual work**, so the session is properly named while it
 runs (the user relies on the Recents list to tell running sessions apart). Do it
 up front no matter how quick the task looks; you'll repeat it at the very end
-unless an in-session `/rename` has happened by then (see below). Proactively emit,
-for the user to run, a single ready-to-paste line of the form
+unless an in-session `/rename` has happened by then (see below). Proactively
+emit, for the user to run, a single ready-to-paste line of the form
 
 ```
 /rename geowep-ng: <short description of this session's work>
 ```
 
-i.e. that settings-branch-name prefix, then `: `, then a concise description. You
-don't have access to the platform's auto-generated session name, so derive the
-description
-from the first prompt / the work at hand (a handful of words); the user can keep
-their own wording if they prefer.
+i.e. that settings-branch-name prefix, then `: `, then a concise description.
+You don't have access to the platform's auto-generated session name, so derive
+the description from the first prompt / the work at hand (a handful of words);
+the user can keep their own wording if they prefer.
 
-**Emit it at up to two points: always near the start, and again at the very
-end unless a `/rename` was run in the session.**
+**Emit it at up to two points: always near the start, and again at the very end
+unless a `/rename` was run in the session.**
 
 - **Start: always emit it — never skip.** You cannot see the platform's
   auto-generated session name (it is never surfaced to the session), so you
@@ -109,7 +109,7 @@ end unless a `/rename` was run in the session.**
   check. (Even a resumed session whose first prompt happens to show a prefixed
   name still gets the start emission — don't try to detect that and skip.)
 - **End: skip only if a `/rename` appears in the transcript.** The one rename
-  signal you *can* observe is an **in-session `/rename` command** — local slash
+  signal you _can_ observe is an **in-session `/rename` command** — local slash
   commands show up in the transcript, so scan it before the closing emission and
   stay silent if one is there. A rename done through the platform UI (or the
   original auto-generated name) is invisible to you, so you can't key off "the
@@ -120,8 +120,9 @@ end unless a `/rename` was run in the session.**
 
 **When the initial prompt names a work item (Azure DevOps) or issue (GitHub)
 number, follow that instead** of an invented description: after the
-settings-branch-name prefix and `: `, put the work item type (`Bug`/`Task`/`Support`/…), the number,
-and the work item / issue title, space-separated. So the line becomes
+settings-branch-name prefix and `: `, put the work item type
+(`Bug`/`Task`/`Support`/…), the number, and the work item / issue title,
+space-separated. So the line becomes
 
 ```
 /rename geowep-ng: <work item type> <work item number> <work item title>
@@ -183,16 +184,16 @@ There are two common routes:
   `claude/<session>` backstop namespace consistent. Don't prefix the branch with
   the project name (the branch already lives in that repo), but after `claude/`
   **do** prefix it with the `<component>` when a component is configured. That
-  component prefix is exactly the **settings-branch suffix** computed above — the
-  last path segment of `AGENTS_COMPONENT_DIR` with any redundant leading `<repo>-`
-  stripped — used here *alone*, without the repo part. So both `docker/ng` and
-  `components/geowep-ng` give the prefix `ng` (it is `${b#<repo>-}`, the settings
-  branch minus its `<repo>-` head). When a component is set the feature branch
-  **must** carry it (`claude/ng-…`), never bare `claude/…`; this makes a monorepo
-  component's feature branches easy to spot amidst feature branches of other
-  components. The branch name mirrors the session name (see "Naming the
-  session"), joined with `-` rather than `: `/spaces — so when the initial
-  prompt names a work item / issue:
+  component prefix is exactly the **settings-branch suffix** computed above —
+  the last path segment of `AGENTS_COMPONENT_DIR` with any redundant leading
+  `<repo>-` stripped — used here _alone_, without the repo part. So both
+  `docker/ng` and `components/geowep-ng` give the prefix `ng` (it is
+  `${b#<repo>-}`, the settings branch minus its `<repo>-` head). When a
+  component is set the feature branch **must** carry it (`claude/ng-…`), never
+  bare `claude/…`; this makes a monorepo component's feature branches easy to
+  spot amidst feature branches of other components. The branch name mirrors the
+  session name (see "Naming the session"), joined with `-` rather than `:
+`/spaces — so when the initial prompt names a work item / issue:
 
   ```
   claude/ng-<work item type>-<work item number>-<work item title>
