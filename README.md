@@ -147,6 +147,21 @@ main
 └── <next-project>-<component>
 ```
 
+### Propagating scaffolding changes: `/commit-push-propagate`
+
+When you evolve the scaffolding itself on `main` (edit `CLAUDE.md`, a hook, a
+skill…), every settings branch should pick the change up. The
+[`/commit-push-propagate`](.claude/skills/commit-push-propagate/SKILL.md) skill
+does the whole dance: it commits the working changes on `main`, pushes them, and
+then cherry-picks the new commits onto **every** per-project/component settings
+branch (`geowep`, `geowep-ng`, …) and pushes each. If a cherry-pick conflicts —
+a settings branch customized the same file — it stops, reports which branch and
+file, and leaves the rest so you can hand-merge.
+
+Run it as `/commit-push-propagate`, or just say "commit, push, propagate". It
+**only applies on the `main` template branch** (no project configured) — in a
+project session there is nothing to propagate.
+
 ## Set your PAT in the cloud Environment
 
 The clone and the PRs authenticate with a Personal Access Token read from the
