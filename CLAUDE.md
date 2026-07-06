@@ -32,26 +32,37 @@ separate:
 
 ## Naming the session
 
-The session name should be **prefixed with the agents repo branch we started
-from** — the project's settings branch, which is `<repo>` or
-`<repo>-<component>` (get it with `git rev-parse --abbrev-ref HEAD` at the
-workspace root; e.g. `geowep` or `geowep-ng`). So a session whose auto-generated
-name is `settings merge in start session hook` should become `geowep-ng:
-settings merge in start session hook`. This makes it obvious at a glance, in the
-Recents list, which project (and component) each session is working on.
+The session name should be **prefixed with the project — `<project>` when no
+component is configured, or `<project>-<component>` when one is** (e.g. `geowep`
+or `geowep-ng`). This is exactly the agents repo branch we started from (the
+project's settings branch), so you can read it off `git rev-parse --abbrev-ref
+HEAD` at the workspace root — but the rule is the prefix **is** project or
+project-component, full stop; don't drop the project or shorten it to just the
+component. So a session whose auto-generated name is `settings merge in start
+session hook` should become `geowep-ng: settings merge in start session hook`.
+This makes it obvious at a glance, in the Recents list, which project (and
+component) each session is working on.
+
+**Note the contrast with the feature-branch prefix** (see "Starting fresh work"
+below): the session prefix keeps the project name (`geowep-ng: …`), whereas the
+feature branch under `claude/` drops it and keeps only the component (`claude/ng-…`).
+Same component, different prefix — don't conflate the two.
 
 **You cannot rename the session yourself** — there is no tool for it, and by the
 time you read this the platform has already auto-named the session from the
 first prompt. Only the user can rename it (the `/rename` command), so the prefix
-won't appear unless you prompt them. Therefore, **at the very start of a remote
-project session, proactively suggest the rename**: emit, for the user to run, a
+won't appear unless you prompt them. Therefore, **this must be among the very
+first things you do in a remote project session — emit the rename suggestion
+before you start on the actual work**, so the session is properly named while it
+runs (the user relies on the Recents list to tell running sessions apart). Don't
+finish the task and then suggest it. Proactively emit, for the user to run, a
 single ready-to-paste line of the form
 
 ```
 /rename geowep-ng: <short description of this session's work>
 ```
 
-i.e. the branch prefix, then `: `, then a concise description. You don't have
+i.e. the project prefix, then `: `, then a concise description. You don't have
 access to the platform's auto-generated session name, so derive the description
 from the first prompt / the work at hand (a handful of words); the user can keep
 their own wording if they prefer. Do this once, near the start — don't nag on
@@ -59,7 +70,7 @@ later turns. If the first prompt shows the session name is already prefixed
 (e.g. a resumed session), say nothing.
 
 **When the initial prompt names a work item (Azure DevOps) or issue (GitHub)
-number, follow that instead** of an invented description: after the branch
+number, follow that instead** of an invented description: after the project
 prefix and `: `, put the work item type (`Bug`/`Task`/`Support`/…), the number,
 and the work item / issue title, space-separated. So the line becomes
 
