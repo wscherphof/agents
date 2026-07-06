@@ -54,7 +54,40 @@ git -C "$PROJ" rev-list --count "origin/$TARGET..origin/$INTEGRATION"
 If that count is `0`, the integration branch has nothing beyond the target —
 stop and report it (nothing to merge).
 
-## 2. Collect the constituent PRs
+## 2. Bring the target branch into the integration branch
+
+Before opening the PR, make sure the integration branch already contains
+everything on the target. Then the PR's diff is exactly the integration work,
+and any conflicts get resolved as a visible commit **on the branch** (where a
+reviewer sees them) rather than surfacing when someone clicks "merge".
+
+Check whether the target is ahead of the integration branch:
+
+```bash
+git -C "$PROJ" rev-list --count "origin/$INTEGRATION..origin/$TARGET"
+```
+
+If that count is `0`, the integration branch already contains all of the target
+— skip to the next step. Otherwise merge the target in and push it (the PR
+merges `origin/$INTEGRATION`, so the sync only counts once it's pushed):
+
+```bash
+git -C "$PROJ" checkout "$INTEGRATION"
+git -C "$PROJ" pull --ff-only origin "$INTEGRATION"
+git -C "$PROJ" merge --no-edit "origin/$TARGET"
+git -C "$PROJ" push origin "$INTEGRATION"
+git -C "$PROJ" fetch origin --prune        # refresh origin/* for the steps below
+```
+
+**If the merge reports conflicts, stop.** Don't resolve them blind or force the
+PR through. Run `git -C "$PROJ" merge --abort`, tell the user which files
+conflict, and let them resolve the sync merge (or do it together) before
+re-running the skill. The PR must merge cleanly.
+
+The sync merge commit carries no PR reference, so it won't be mistaken for a
+constituent PR in the next step.
+
+## 3. Collect the constituent PRs
 
 Run the helper (it detects the host and emits host-prefixed refs, oldest first):
 
@@ -78,7 +111,7 @@ Cross-check each against `git -C "$PROJ" log origin/$TARGET..origin/$INTEGRATION
 so you only include PRs not already in the target. If you still can't determine
 the list, say so plainly in the description rather than inventing numbers.
 
-## 3. Don't create a duplicate
+## 4. Don't create a duplicate
 
 An integration PR from `$INTEGRATION` → `$TARGET` may already be open. Check
 first; if one exists, **update its description** (below) instead of opening a
@@ -87,7 +120,7 @@ second, and output its URL.
 - GitHub: `gh pr list --repo <account>/<repo> --base "$TARGET" --head "$INTEGRATION" --state open --json number,url`
 - Azure DevOps: `az repos pr list --repository <repo> --source-branch "$INTEGRATION" --target-branch "$TARGET" --status active --output json`
 
-## 4. Build the description
+## 5. Build the description
 
 Reference each constituent PR by its **bare ref** (`#123` / `!123`) — the host
 renders it as a full link including the PR's type and title, so you don't hand-
@@ -108,7 +141,7 @@ It rolls up the following PRs, each already reviewed and merged into
 (Use `#123` etc. on GitHub.) Write the body to a temp file in the scratchpad so
 you can pass it with `--body-file` / `--description`.
 
-## 5. Create (or update) the PR
+## 6. Create (or update) the PR
 
 The integration branch already exists on the remote, so no feature branch or
 push is needed — create the PR directly.
@@ -137,7 +170,7 @@ push is needed — create the PR directly.
 Keep the title short but meaningful; adapt it if the user gave a release name or
 similar.
 
-## 6. Output the PR URL
+## 7. Output the PR URL
 
 End by giving the user a **clickable link to the integration PR** so they can
 open it in the browser. Use `srclink` with the new PR's number (it's on PATH and
