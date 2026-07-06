@@ -10,6 +10,16 @@ conf_dir="$CLAUDE_PROJECT_DIR/conf"
 [ -f "$conf_dir/.env" ] && . "$conf_dir/.env"
 : "${AGENTS_GIT_ACCOUNT:=}" "${AGENTS_GIT_REPO:=}" "${AGENTS_COMPONENT_DIR:=}" "${AGENTS_START_DOCKER:=}" "${AGENTS_INTEGRATION_BRANCH:=}"
 
+# On the scaffolding template branch (main), no project is configured
+# (AGENTS_GIT_ACCOUNT blank): none of the project clone/merge setup below
+# applies, so bail out before it runs. In particular, skip the Claude git
+# identity the subshell sets only for project sessions (needed there for the
+# harness's Stop-hook backstop commit) — leaving the dev's own pre-configured
+# git identity in place, so scaffolding commits are authored under their name.
+if [ -z "$AGENTS_GIT_ACCOUNT" ]; then
+  exit 0
+fi
+
 # You should set either AZURE_DEVOPS_EXT_PAT or GITHUB_PERSONAL_ACCESS_TOKEN in
 # your environment before starting the session. The script will use whichever is
 # set to construct the repo URL for cloning.
