@@ -32,21 +32,20 @@ separate:
 
 ## Naming the session
 
-The session name should be **prefixed with the project — `<project>` when no
-component is configured, or `<project>-<component>` when one is** (e.g. `geowep`
-or `geowep-ng`). This is exactly the agents repo branch we started from (the
-project's settings branch), so you can read it off `git rev-parse --abbrev-ref
-HEAD` at the workspace root — but the rule is the prefix **is** project or
-project-component, full stop; don't drop the project or shorten it to just the
-component. So a session whose auto-generated name is `settings merge in start
-session hook` should become `geowep-ng: settings merge in start session hook`.
-This makes it obvious at a glance, in the Recents list, which project (and
-component) each session is working on.
+The session name must be **prefixed with the exact name of the agents-repo
+settings branch we started from** — read it verbatim off `git rev-parse
+--abbrev-ref HEAD` at the workspace root (e.g. `geowep` or `geowep-ng`). Use that
+branch name character-for-character — same casing, same suffix; don't derive the
+prefix from the repo name, and don't shorten, expand, or re-case any part of it.
+So if `git rev-parse --abbrev-ref HEAD` prints `geowep-ng`, a session whose
+auto-generated name is `settings merge in start session hook` becomes `geowep-ng:
+settings merge in start session hook`. This makes it obvious at a glance, in the
+Recents list, which session is working on what.
 
 **Note the contrast with the feature-branch prefix** (see "Starting fresh work"
-below): the session prefix keeps the project name (`geowep-ng: …`), whereas the
-feature branch under `claude/` drops it and keeps only the component (`claude/ng-…`).
-Same component, different prefix — don't conflate the two.
+below): the session prefix is the **entire** settings-branch name (`geowep-ng:
+…`), whereas the feature branch under `claude/` keeps only the segment after the
+hyphen (`claude/ng-…`). Same branch, different prefix — don't conflate the two.
 
 **You cannot rename the session yourself** — there is no tool for it, and by the
 time you read this the platform has already auto-named the session from the
@@ -63,8 +62,9 @@ for the user to run, a single ready-to-paste line of the form
 /rename geowep-ng: <short description of this session's work>
 ```
 
-i.e. the project prefix, then `: `, then a concise description. You don't have
-access to the platform's auto-generated session name, so derive the description
+i.e. that settings-branch-name prefix, then `: `, then a concise description. You
+don't have access to the platform's auto-generated session name, so derive the
+description
 from the first prompt / the work at hand (a handful of words); the user can keep
 their own wording if they prefer.
 
@@ -81,8 +81,8 @@ when the session still needs renaming. Never repeat it once a `/rename` is in
 play — a closing remark on an already-correctly-named session is just noise.
 
 **When the initial prompt names a work item (Azure DevOps) or issue (GitHub)
-number, follow that instead** of an invented description: after the project
-prefix and `: `, put the work item type (`Bug`/`Task`/`Support`/…), the number,
+number, follow that instead** of an invented description: after the
+settings-branch-name prefix and `: `, put the work item type (`Bug`/`Task`/`Support`/…), the number,
 and the work item / issue title, space-separated. So the line becomes
 
 ```
