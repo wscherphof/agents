@@ -2,6 +2,14 @@
 
 set -uo pipefail
 
+# This hook only does anything in a Claude Code on the web (remote) session,
+# where it clones the project and mirrors its agent settings. Locally it must be
+# inert — in particular it must NOT override the dev's global git identity (see
+# the Claude identity set below) when they open a local session on a settings
+# branch. Claude Code on the web sets CLAUDE_CODE_REMOTE=true; bail out otherwise.
+# https://code.claude.com/docs/en/claude-code-on-the-web#install-dependencies-with-a-sessionstart-hook
+[ "${CLAUDE_CODE_REMOTE:-}" = "true" ] || exit 0
+
 # Project configuration (which repo/component this branch targets, plus the
 # PROJECT.sh/COMPONENT.sh setup steps) lives in conf/ — committed per
 # project/component branch. Edit it there.
