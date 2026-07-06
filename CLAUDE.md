@@ -85,7 +85,7 @@ first things you do in a remote project session — emit the rename suggestion
 before you start on the actual work**, so the session is properly named while it
 runs (the user relies on the Recents list to tell running sessions apart). Do it
 up front no matter how quick the task looks; you'll repeat it at the very end
-only if the rename still hasn't happened by then (see below). Proactively emit,
+unless an in-session `/rename` has happened by then (see below). Proactively emit,
 for the user to run, a single ready-to-paste line of the form
 
 ```
@@ -98,17 +98,25 @@ description
 from the first prompt / the work at hand (a handful of words); the user can keep
 their own wording if they prefer.
 
-**Emit it at up to two points: always near the start — about the first thing you
-do — and again at the very end, but only if the rename still hasn't happened by
-then.** Skip the start emission only for a resumed session whose first prompt
-already shows a prefixed name. The closing repeat is a convenience — it puts the
-paste line back within reach so the user needn't scroll to the top of the
-session to find it. Before the closing emission, scan the transcript
-and stay silent if a `/rename` command already appears (the user has renamed the
-session — local slash commands show up in the transcript, so an in-session
-rename is visible) or the name is already prefixed; re-suggest at the end only
-when the session still needs renaming. Never repeat it once a `/rename` is in
-play — a closing remark on an already-correctly-named session is just noise.
+**Emit it at up to two points: always near the start, and again at the very
+end unless a `/rename` was run in the session.**
+
+- **Start: always emit it — never skip.** You cannot see the platform's
+  auto-generated session name (it is never surfaced to the session), so you
+  cannot know whether the current name already carries the prefix. Emit the
+  paste line up front regardless; a redundant suggestion when the session is
+  already correctly named is the expected, acceptable cost of not being able to
+  check. (Even a resumed session whose first prompt happens to show a prefixed
+  name still gets the start emission — don't try to detect that and skip.)
+- **End: skip only if a `/rename` appears in the transcript.** The one rename
+  signal you *can* observe is an **in-session `/rename` command** — local slash
+  commands show up in the transcript, so scan it before the closing emission and
+  stay silent if one is there. A rename done through the platform UI (or the
+  original auto-generated name) is invisible to you, so you can't key off "the
+  name is already prefixed" — only off a transcript `/rename`. The closing
+  repeat is a convenience — it puts the paste line back within reach so the user
+  needn't scroll to the top of the session to find it — so re-suggest at the end
+  only when no in-session `/rename` is present, and never repeat it once one is.
 
 **When the initial prompt names a work item (Azure DevOps) or issue (GitHub)
 number, follow that instead** of an invented description: after the
