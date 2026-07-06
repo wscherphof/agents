@@ -310,11 +310,22 @@ merge_claude_md
 # exists), but `geowep` and `geowep-ng` coexist fine.
 #   GeoWEP              -> geowep
 #   GeoWEP + docker/ng  -> geowep-ng
+# The component part is the LAST path segment of the component dir, but with a
+# redundant leading "<repo>-" stripped (case-insensitively): some layouts repeat
+# the project name in the component dir so it is recognizable when a dev opens it
+# as an IDE root (components/geowep-ng), and we want that to still yield geowep-ng,
+# not geowep-geowep-ng.
+#   GeoWEP + components/geowep-ng -> geowep-ng  (not geowep-geowep-ng)
 # AGENTS_SETTINGS_BRANCH overrides the scheme when it does not fit.
 target_branch="${AGENTS_SETTINGS_BRANCH:-}"
 if [ -z "$target_branch" ]; then
-  target_branch="${AGENTS_GIT_REPO,,}"
-  [ -n "$COMPONENT_REL" ] && target_branch="${target_branch}-${COMPONENT_REL##*/}"
+  repo="${AGENTS_GIT_REPO,,}"
+  target_branch="$repo"
+  if [ -n "$COMPONENT_REL" ]; then
+    seg="${COMPONENT_REL##*/}"
+    case "${seg,,}" in "$repo"-*) seg="${seg:$((${#repo}+1))}" ;; esac
+    target_branch="$target_branch-$seg"
+  fi
 fi
 
 # Remember where the session's checked-out branch started, so we can roll it

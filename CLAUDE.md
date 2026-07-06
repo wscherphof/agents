@@ -33,17 +33,44 @@ separate:
 ## Naming the session
 
 The session name must be **prefixed with the exact name of the agents-repo
-settings branch we started from.** Determine it mechanically: **run `git
-rev-parse --abbrev-ref HEAD` at the workspace root and copy its output
-character-for-character** as the prefix (e.g. `geowep` or `geowep-ng`) — same
-casing, same suffix. Don't type it from memory, don't derive it from the repo
-name, and don't shorten, expand, or re-case any part of it. In particular, **do
-not use the shortened component form** that `claude/` feature branches use (e.g.
-`ng`): the session prefix is always the *whole* branch name — so `geowep-ng`,
-never just `ng`. So if `git rev-parse --abbrev-ref HEAD` prints `geowep-ng`, a
-session whose auto-generated name is `settings merge in start session hook`
-becomes `geowep-ng: settings merge in start session hook`. This makes it obvious
-at a glance, in the Recents list, which session is working on what.
+settings branch this project uses.** Do **not** read it from `git rev-parse
+--abbrev-ref HEAD`: in a remote session the workspace root (the `agents` repo) is
+checked out on an **ephemeral `claude/<id>` branch, not the settings branch**, so
+that command returns the wrong name (e.g. `claude/test-session-c5713q`, which is
+how this used to go wrong). Instead **derive it from [conf/.env](conf/.env),
+exactly as the session-start hook does** (section 8 of
+[merge-agent-settings.sh](.claude/hooks/session-start/scripts/merge-agent-settings.sh)):
+lowercase `AGENTS_GIT_REPO`, and if `AGENTS_COMPONENT_DIR` is set, append `-` and
+its **last path segment** — but first strip a redundant leading `<repo>-` from
+that segment (some layouts repeat the project name in the component dir so it is
+recognizable as an IDE root, e.g. `components/geowep-ng`; that must still yield
+`geowep-ng`, not `geowep-geowep-ng`). `AGENTS_SETTINGS_BRANCH` overrides the whole
+scheme when set. Compute it mechanically from the workspace root:
+
+```
+b="${AGENTS_SETTINGS_BRANCH:-}"
+if [ -z "$b" ]; then
+  . conf/.env
+  repo="${AGENTS_GIT_REPO,,}"; b="$repo"
+  if [ -n "$AGENTS_COMPONENT_DIR" ]; then
+    seg="${AGENTS_COMPONENT_DIR##*/}"
+    case "${seg,,}" in "$repo"-*) seg="${seg:$((${#repo}+1))}" ;; esac
+    b="$b-$seg"
+  fi
+fi
+echo "$b"
+```
+
+So `AGENTS_GIT_REPO=GeoWEP` yields `geowep-ng` for `AGENTS_COMPONENT_DIR=docker/ng`
+**and** for `AGENTS_COMPONENT_DIR=components/geowep-ng`. Use that whole name as the
+prefix — same casing, same suffix; don't
+type it from memory and don't shorten, expand, or re-case any part of it. In
+particular, **do not use the shortened component form** that `claude/` feature
+branches use (e.g. `ng`): the session prefix is always the *whole*
+settings-branch name — so `geowep-ng`, never just `ng`. A session whose
+auto-generated name is `settings merge in start session hook` becomes `geowep-ng:
+settings merge in start session hook`. This makes it obvious at a glance, in the
+Recents list, which session is working on what.
 
 **Note the contrast with the feature-branch prefix** (see "Starting fresh work"
 below): the session prefix is the **entire** settings-branch name (`geowep-ng:
@@ -147,9 +174,14 @@ There are two common routes:
   marks the branch as agent-authored and keeps Claude Code Web's own
   `claude/<session>` backstop namespace consistent. Don't prefix the branch with
   the project name (the branch already lives in that repo), but after `claude/`
-  **do** prefix it with the `<component>` when a component is configured (the
-  same prefix the agents repo's settings branch uses, e.g. `ng`) so a monorepo
-  component's feature branches are easy to spot amidst feature branches of other
+  **do** prefix it with the `<component>` when a component is configured. That
+  component prefix is exactly the **settings-branch suffix** computed above — the
+  last path segment of `AGENTS_COMPONENT_DIR` with any redundant leading `<repo>-`
+  stripped — used here *alone*, without the repo part. So both `docker/ng` and
+  `components/geowep-ng` give the prefix `ng` (it is `${b#<repo>-}`, the settings
+  branch minus its `<repo>-` head). When a component is set the feature branch
+  **must** carry it (`claude/ng-…`), never bare `claude/…`; this makes a monorepo
+  component's feature branches easy to spot amidst feature branches of other
   components. The branch name mirrors the session name (see "Naming the
   session"), joined with `-` rather than `: `/spaces — so when the initial
   prompt names a work item / issue:
