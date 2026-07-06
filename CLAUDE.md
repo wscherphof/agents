@@ -33,14 +33,17 @@ separate:
 ## Naming the session
 
 The session name must be **prefixed with the exact name of the agents-repo
-settings branch we started from** — read it verbatim off `git rev-parse
---abbrev-ref HEAD` at the workspace root (e.g. `geowep` or `geowep-ng`). Use that
-branch name character-for-character — same casing, same suffix; don't derive the
-prefix from the repo name, and don't shorten, expand, or re-case any part of it.
-So if `git rev-parse --abbrev-ref HEAD` prints `geowep-ng`, a session whose
-auto-generated name is `settings merge in start session hook` becomes `geowep-ng:
-settings merge in start session hook`. This makes it obvious at a glance, in the
-Recents list, which session is working on what.
+settings branch we started from.** Determine it mechanically: **run `git
+rev-parse --abbrev-ref HEAD` at the workspace root and copy its output
+character-for-character** as the prefix (e.g. `geowep` or `geowep-ng`) — same
+casing, same suffix. Don't type it from memory, don't derive it from the repo
+name, and don't shorten, expand, or re-case any part of it. In particular, **do
+not use the shortened component form** that `claude/` feature branches use (e.g.
+`ng`): the session prefix is always the *whole* branch name — so `geowep-ng`,
+never just `ng`. So if `git rev-parse --abbrev-ref HEAD` prints `geowep-ng`, a
+session whose auto-generated name is `settings merge in start session hook`
+becomes `geowep-ng: settings merge in start session hook`. This makes it obvious
+at a glance, in the Recents list, which session is working on what.
 
 **Note the contrast with the feature-branch prefix** (see "Starting fresh work"
 below): the session prefix is the **entire** settings-branch name (`geowep-ng:
