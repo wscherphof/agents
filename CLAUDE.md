@@ -175,11 +175,15 @@ There are two common routes:
   new PR**; a `git push` simply adds the new commits to the existing PR.
 
 In **either** route, once implementation on the feature branch is done — and
-committed and pushed — **a PR should exist**. If there isn't one yet, create it
-(this is the normal end state for fresh work, and also covers an existing branch
-that was never given a PR). If a PR already exists, don't create another; the
-push you just did already updated it. So: finish the work, commit, push, then
-ensure a PR is open for the branch.
+committed and pushed — **open the PR. Do this automatically, without asking.**
+Opening the PR is the final step of finishing the work, not a separate action to
+seek permission for — never stop at "I haven't opened a PR; want me to?" or
+otherwise gate it on the user's go-ahead. If there is no PR yet, create it
+immediately (this is the normal end state for fresh work, and also covers an
+existing branch that was never given a PR). The only case where you don't create
+one is when a PR **already exists** for the branch — then don't create another;
+the push you just did already updated it. So: finish the work, commit, push, and
+open the PR (or push to update the existing one).
 
 **PR target branch.** Read `AGENTS_INTEGRATION_BRANCH` from
 [conf/.env](conf/.env). If it is **blank**, target the PR at the checked-out
