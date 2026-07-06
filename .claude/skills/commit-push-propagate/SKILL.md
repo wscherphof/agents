@@ -72,11 +72,13 @@ backstop branches (those aren't settings branches):
 git fetch origin --prune
 git for-each-ref --format='%(refname:short)' refs/remotes/origin \
   | sed 's#^origin/##' \
-  | grep -vE '^(HEAD|main|master)$' \
+  | grep -vE '^(HEAD|origin|main|master)$' \
   | grep -vE '^claude/'
 ```
 
-This yields e.g. `geowep`, `geowep-ng`. If it's empty, there are no settings
+(`origin/HEAD` shortens to `origin`, not `HEAD` — hence the extra `origin` in
+the exclusion; a real branch literally named `origin` doesn't exist in
+practice.) This yields e.g. `geowep`, `geowep-ng`. If it's empty, there are no settings
 branches yet — report that main was pushed and there's nothing to propagate.
 
 ## 5. Cherry-pick onto each branch and push
