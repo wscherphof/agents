@@ -10,8 +10,6 @@
 
 set -exuo pipefail
 
-"$AGENTS_TOOLS_DIR/pin_node_version.sh" 24.16.0
-
 npm ci
 
 # Install the correct version of Chromium Headless Shell for the current version
