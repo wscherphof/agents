@@ -7,4 +7,6 @@
 
 set -euxo pipefail
 
-# npm ci
+"$AGENTS_TOOLS_DIR/pin_node_version.sh" 24.16.0
+
+npm install -g @fission-ai/openspec@latest
