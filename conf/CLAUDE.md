@@ -16,6 +16,8 @@ each project/component branch. Write plain Markdown instructions directly below
 this comment.
 -->
 
+# Azure DevOps work item state
+
 If the prompt mentions a work item on Azure DevOps, and that work item is
 currently in state To Do, start off with moving that work item to state Doing.
 Never make any further state transitions.
