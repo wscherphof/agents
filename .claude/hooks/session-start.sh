@@ -65,7 +65,11 @@ dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     git clone "$repo_url" "$AGENTS_REPO_DIR"
   fi
 
-  AGENTS_COMPONENT_DIR=$(realpath "$AGENTS_REPO_DIR/${AGENTS_COMPONENT_DIR:-.}")
+  # Resolve to an absolute path only when a component is actually configured;
+  # leave it empty otherwise (merge-agent-settings.sh falls back to the repo
+  # root, and COMPONENT.sh is skipped below).
+  [ -n "$AGENTS_COMPONENT_DIR" ] &&
+    AGENTS_COMPONENT_DIR=$(realpath "$AGENTS_REPO_DIR/$AGENTS_COMPONENT_DIR")
   export AGENTS_COMPONENT_DIR
 
   AGENTS_TOOLS_DIR=$CLAUDE_PROJECT_DIR/tools
@@ -109,9 +113,13 @@ dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   cd "$AGENTS_REPO_DIR" || exit
   bash "$conf_dir/PROJECT.sh"
 
-  echo "• Running COMPONENT.sh..."
-  cd "$AGENTS_COMPONENT_DIR" || exit
-  bash "$conf_dir/COMPONENT.sh"
+  # Only when a component was configured; otherwise its dir is just the repo
+  # root and PROJECT.sh already covered that.
+  if [ -n "$AGENTS_COMPONENT_DIR" ]; then
+    echo "• Running COMPONENT.sh..."
+    cd "$AGENTS_COMPONENT_DIR" || exit
+    bash "$conf_dir/COMPONENT.sh"
+  fi
 
   echo "• Merging agent settings..."
   cd "$AGENTS_REPO_DIR" || exit
