@@ -87,6 +87,11 @@ else
     exit 1
 fi
 
+# A previous run of this script points npm's global prefix at ~/.local (see the
+# end of this script). nvm refuses to `nvm use` while that config is set, which
+# would abort a re-run here under `set -e` — clear it before touching nvm.
+npm config delete prefix >/dev/null 2>&1 || true
+
 echo "Installing and using Node.js version $NODE_VERSION..."
 if ! retry 4 2 nvm install "$NODE_VERSION"; then
     echo "ERROR: 'nvm install $NODE_VERSION' failed after retries; leaving system Node in place." >&2
@@ -109,6 +114,17 @@ for b in node npm npx corepack; do
         ln -sf "$NODE_BIN_DIR/$b" "$HOME/.local/bin/$b"
     fi
 done
+
+# Global installs done after the pin (`npm install -g …`) would land in nvm's
+# per-version prefix, whose bin dir is NOT on PATH for the shells Claude Code
+# spawns (they never load nvm) — the package would install fine but its command
+# would be unfindable. Point npm's global prefix at ~/.local instead, so global
+# installs drop their launchers straight into ~/.local/bin, the same first-on-
+# PATH directory the node symlinks above rely on. (nvm dislikes this setting;
+# the `npm config delete prefix` before the install step above keeps re-runs of
+# this script working.)
+echo "Pointing npm's global prefix at ~/.local..."
+"$NODE_BIN_DIR/npm" config set prefix "$HOME/.local"
 
 # The symlinks only win if ~/.local/bin sits ahead of /opt/node22/bin on PATH.
 # That holds for the non-interactive shells Claude Code spawns, but NOT for
