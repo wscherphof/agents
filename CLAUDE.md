@@ -334,7 +334,12 @@ repo, PAT never rendered):
   `https://dev.azure.com/<org>/_workitems/edit/<n>` (work-item IDs are unique
   org-wide, so no project segment is needed); PR →
   `https://dev.azure.com/<account>/_git/<repo>/pullrequest/<n>` (`<account>` is
-  the same `<org>`-or-`<org>/<project>` segment used for file links above).
+  the same `<org>`-or-`<org>/<project>` segment used for file links above). The
+  `/_git/<repo>/` middle is **mandatory** — a PR URL that reads
+  `<org>/<repo>/pullrequest/<n>` (no `_git`) is broken. Concretely, with org
+  `merkatordev`, project `infrabelow`, repo `infrabelow`, PR 3210 →
+  `https://dev.azure.com/merkatordev/infrabelow/_git/infrabelow/pullrequest/3210`
+  (**not** `…/merkatordev/infrabelow/pullrequest/3210`).
 
 ### Azure DevOps PRs
 
@@ -346,6 +351,18 @@ the install is probably still running — wait a bit and retry; check
 [.claude/hooks/session-start/scripts/install-az-devops.log](.claude/hooks/session-start/scripts/install-az-devops.log)
 for progress. `git push` itself does not depend on `az` (it authenticates via
 the PAT in the remote URL), so push first, then create the PR once `az` is up.
+
+`az repos pr create` returns the new PR's numeric id (`pullRequestId`); note it,
+then **render the PR link with `srclink '!<pr-id>'` — never hand-build it.** The
+correct Azure DevOps PR URL is
+`https://dev.azure.com/<org>/<project>/_git/<repo>/pullrequest/<n>`, and building
+it by hand reliably drops the `/<project>/_git/<repo>` middle, collapsing it to
+the GitHub-shaped `<org>/<repo>/pullrequest/<n>` — e.g. the broken
+`https://dev.azure.com/merkatordev/infrabelow/pullrequest/3210` instead of the
+working `https://dev.azure.com/merkatordev/infrabelow/_git/infrabelow/pullrequest/3210`.
+`srclink` derives the whole path from the project repo's own remote, so it always
+gets the `_git` segment right; use it. (Don't be misled by the API URL in the
+`az` output's `url` field either — that's the REST endpoint, not the web link.)
 
 When the session prompt mentions a specific work item (e.g. `#123`) and you
 create a PR, **link that work item to the PR automatically** — pass
