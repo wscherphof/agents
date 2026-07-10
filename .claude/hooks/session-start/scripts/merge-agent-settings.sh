@@ -22,7 +22,12 @@ set -euo pipefail
 
 set -x
 
-sudo apt update
+# --allow-releaseinfo-change: base-image apt repos (e.g. the ondrej/php PPA)
+# occasionally change their Release Label/Origin/Suite, which makes a plain
+# `apt update` exit non-zero. Under `set -e` that would abort the whole merge
+# before rsync is installed and before anything is mirrored/committed, so accept
+# the release-info change and carry on.
+sudo apt update --allow-releaseinfo-change
 sudo apt install -y rsync jq python3
 
 # --- temp bookkeeping -------------------------------------------------------
