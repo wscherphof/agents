@@ -160,35 +160,78 @@ the skill catch up a behind branch: it replays every source commit the target
 lacks — whether just-pushed or pushed long ago — while never re-applying one it
 already has.
 
-Align the local branch to `origin/$b` before picking (with `git checkout -B`) so
-you always build on the current remote tip, then replay the missing SHAs:
+**Do not batch the picks** (`git cherry-pick $all_of_them`). Settings branches
+customize files like `conf/.env`, `README.md` and `conf/COMPONENT.sh`, so a
+scaffolding commit that touches one of those **conflicts as a matter of course**
+— and a batch pick that hits a conflict mid-way leaves the index dirty (blocking
+every later branch in a loop) and rolls back the clean picks that preceded it on
+`--abort`. Replay **one commit at a time** instead, so each clean pick banks on
+its own and only the genuinely-contested commit stops the branch.
+
+Handle each missing commit by its outcome:
+
+| Outcome of the single `git cherry-pick` | What it means | Action |
+|---|---|---|
+| **applies cleanly** | real new content, on files the branch doesn't customize | keep it |
+| **conflicts, superseded** | the branch already has this change via a different commit (patch-id differs, so `git cherry` still lists it); keeping the branch's version of the conflicted files leaves **no net change** | `--skip` it — don't create an empty commit |
+| **conflicts, genuine** | keeping the branch's version still leaves a net change: the commit also edits a customized file with content the branch lacks | **don't guess** — `--abort`, stop the branch, report it for a human hand-merge |
+
+Keeping the branch's own version of a conflicted customized file is the safe
+default; the script only auto-resolves when doing so changes nothing
+(superseded), and defers to a human otherwise. A branch stopped at a genuine
+conflict keeps (and pushes) the commits banked before it; the rest flow on a
+re-run once the blocker is hand-merged.
+
+This logic lives in the helper **[`propagate.sh`](propagate.sh)** in this skill's
+directory. Run it from the agents-repo root with the source branch and the target
+list from step 4:
 
 ```bash
-for b in <branches>; do
-  echo "=== $b ==="
-  git checkout -B "$b" "origin/$b"                     # local branch == current remote tip
-  picks=$(git cherry "origin/$b" "$SRC" | awk '/^\+/ {print $2}')   # oldest-first SHAs missing on $b
-  if [ -z "$picks" ]; then
-    echo "  already up to date — nothing to propagate"
-    continue
-  fi
-  git cherry-pick $picks          # $picks unquoted: multiple SHAs → multiple picks
-  git push origin "$b"
-done
-git checkout "$SRC"               # always return to the source branch when done
+.claude/skills/commit-push-propagate/propagate.sh "$SRC" <branch> [<branch> ...]
 ```
 
-**On a cherry-pick conflict**, don't force it. Stop, `git cherry-pick --abort`
-on that branch, return to `$SRC`, and tell the user which branch conflicted and
-on which file — the change may need hand-merging there (the target branch likely
-customized the same file). Report which branches did propagate cleanly so the
-user knows the partial state.
+It aligns each local branch to `origin/$b` (`git checkout -B`), replays the
+missing commits per the table above, pushes each branch that got any, returns to
+`$SRC`, prints a per-branch summary, and exits non-zero if any branch is blocked
+on a genuine conflict. It is idempotent: re-running after a clean pass applies
+nothing (already-present commits re-register as superseded skips).
+
+**On a genuine conflict** (a branch reported `BLOCKED`), don't force it. Tell the
+user which branch stopped at which commit and on which file — the branch likely
+customized the same file and the change needs hand-merging there (see the
+worked-through hand-merge in step 5a). Report which branches propagated cleanly
+so the user knows the partial state.
+
+### 5a. Hand-merging a genuine conflict
+
+When a branch is `BLOCKED`, resolve that one commit by hand, then re-run
+`propagate.sh` to let the remaining commits flow. The usual cause is that the
+branch already carries a **more advanced** version of the change (e.g. a real
+`AGENTS_INTEGRATION_BRANCH=` value where the source commit only adds the blank
+template default). In that case keep the branch's version of the customized file:
+
+```bash
+git checkout -B "$b" "origin/$b"
+git cherry-pick <sha>                       # conflicts
+git checkout --ours -- <customized-file>    # keep the branch's superseding version
+# ...edit any file that needs a true merge of both sides...
+git add -A
+git -c core.editor=true cherry-pick --continue   # or --skip if it nets to nothing
+git push origin "$b"
+```
+
+Before committing a keep-ours resolution, **confirm the source commit's delta is
+actually already present** on the branch (not silently dropped) — inspect the
+commit (`git show <sha>`) and check the branch already contains those additions.
+If the branch genuinely needs both sides merged, do that merge rather than
+blindly keeping ours.
 
 ## 6. Report
 
-Summarize: the source state (the `$SRC` SHA pushed, or "already current — nothing
-to push"), and each target branch with either the commits cherry-picked onto it
-and its push result, or "already up to date". Note any branch that was skipped or
-conflicted. If nothing needed doing anywhere — no commit, no push, and every
-target already current — say so plainly; that's the only "nothing to do"
-outcome. Confirm the working tree is back on `$SRC`.
+Summarize from `propagate.sh`'s per-branch output: the source state (the `$SRC`
+SHA pushed, or "already current — nothing to push"), and for each target branch
+how many commits were applied, how many were skipped as superseded, and whether
+it is `BLOCKED` on a genuine conflict (which commit, which file — needs the step
+5a hand-merge). If nothing needed doing anywhere — no commit, no push, and every
+target already current or only superseded skips — say so plainly. Confirm the
+working tree is back on `$SRC`.
