@@ -21,3 +21,6 @@ this comment.
 If the prompt mentions a work item on Azure DevOps, and that work item is
 currently in state To Do, start off with moving that work item to state Doing.
 Never make any further state transitions.
+
+This is a change I made to make sure the settings-merge-script has someting to
+commit for my test.
