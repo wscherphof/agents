@@ -62,8 +62,54 @@ for b in "${BRANCHES[@]}"; do
   git checkout -q -B "$b" "origin/$b" || { echo "  cannot check out $b"; SUMMARY[$b]="error: checkout failed"; blocked_any=1; continue; }
 
   picks=$(git cherry "origin/$b" "$SRC" | awk '/^\+/ {print $2}')   # oldest-first SHAs missing on $b
+
+  # --- pre-sync shared scaffolding to the source (in one commit) --------------
+  # Shared scaffolding (.claude/hooks/**, .claude/skills/**, tools/**) must be
+  # identical on every branch — none of it is mirrored from a project, and the
+  # merge hook forbids projects from overwriting it — so the source is
+  # authoritative. Force every shared file the branch has fallen behind on to the
+  # source BEFORE replaying any commit. Two reasons:
+  #   * It catches up a branch that is only behind on shared files, even when
+  #     there are no commits to replay at all.
+  #   * It removes a mixed-commit trap: a commit that touches both a lagged shared
+  #     file and a customized file would otherwise auto-merge the shared file into
+  #     a duplicate (a bad clean-merge, not a conflict) and, entangled with the
+  #     customized conflict, get mis-reported as a genuine BLOCK. With shared
+  #     files already current, every pick (all ancestors of $SRC) merges its
+  #     shared hunks cleanly to the branch's = source version, so the commit
+  #     reduces to its customized part and the superseded/genuine logic below
+  #     handles it correctly.
+  presynced=0
+  shared_lag=$(git diff --name-only "$SRC" HEAD -- .claude/hooks .claude/skills tools)
+  if [ -n "$shared_lag" ]; then
+    while IFS= read -r f; do
+      [ -n "$f" ] || continue
+      if git checkout "$SRC" -- "$f" 2>/dev/null; then
+        git add -- "$f"
+      else
+        git rm -q -- "$f" 2>/dev/null || true # file exists on the branch but not on $SRC
+      fi
+    done <<<"$shared_lag"
+    if ! git diff --cached --quiet HEAD; then
+      git -c core.editor=true commit -q -m "chore: sync shared scaffolding to $SRC
+
+Bring the agents-repo scaffolding that must be identical on every branch (hooks,
+skills, tools) back in line with $SRC; this branch had fallen behind.
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
+      presynced=1
+      echo "  synced shared scaffolding to $SRC: $(echo $shared_lag | tr '\n' ' ')"
+    fi
+  fi
+
   if [ -z "$picks" ]; then
-    echo "  already up to date"; SUMMARY[$b]="up to date"; continue
+    if [ "$presynced" -eq 1 ]; then
+      git push origin "$b" 2>&1 | tail -1
+      SUMMARY[$b]="synced shared scaffolding; no commits to replay"
+    else
+      echo "  already up to date"; SUMMARY[$b]="up to date"
+    fi
+    continue
   fi
 
   applied=0 skipped=0 blocker=""
@@ -114,12 +160,13 @@ for b in "${BRANCHES[@]}"; do
     fi
   done
 
-  if [ "$applied" -gt 0 ]; then
+  if [ "$applied" -gt 0 ] || [ "$presynced" -eq 1 ]; then
     git push origin "$b" 2>&1 | tail -1
   else
     echo "  (nothing applied — nothing to push)"
   fi
   msg="applied=$applied skipped=$skipped"
+  [ "$presynced" -eq 1 ] && msg="synced-shared $msg"
   [ -n "$blocker" ] && { msg="$msg BLOCKED at $blocker"; blocked_any=1; }
   SUMMARY[$b]="$msg"
 done
