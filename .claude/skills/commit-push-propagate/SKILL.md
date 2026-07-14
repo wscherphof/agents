@@ -195,11 +195,23 @@ list from step 4:
 .claude/skills/commit-push-propagate/propagate.sh "$SRC" <branch> [<branch> ...]
 ```
 
-It aligns each local branch to `origin/$b` (`git checkout -B`), replays the
-missing commits per the table above, pushes each branch that got any, returns to
-`$SRC`, prints a per-branch summary, and exits non-zero if any branch is blocked
-on a genuine conflict. It is idempotent: re-running after a clean pass applies
-nothing (already-present commits re-register as superseded skips).
+It aligns each local branch to `origin/$b` (`git checkout -B`), then — **before
+replaying any commit** — **pre-syncs shared scaffolding**: every
+`.claude/hooks/**`, `.claude/skills/**`, `tools/**` file the branch has fallen
+behind `$SRC` on is forced to the `$SRC` version in one `chore: sync shared
+scaffolding` commit. This catches up a branch that is only behind on shared files
+(even with no commits to replay), and — crucially — defuses the **mixed-commit
+trap**: a commit that touches both a lagged shared file and a customized file
+would otherwise auto-merge the shared file into a duplicate and, entangled with
+the customized conflict, be mis-reported as a genuine `BLOCK`. With shared files
+already current, each pick (all ancestors of `$SRC`) merges its shared hunks
+cleanly, so the commit reduces to its customized part and the superseded/genuine
+logic decides it correctly. It then replays the missing commits per the table
+above, pushes each branch that changed, returns to `$SRC`, prints a per-branch
+summary, and exits non-zero if any branch is blocked on a genuine conflict. It is
+idempotent: re-running after a clean pass applies nothing (shared files already
+match, so the pre-sync is a no-op; already-present commits re-register as
+superseded skips).
 
 **On a genuine conflict** (a branch reported `BLOCKED`), don't force it. Tell the
 user which branch stopped at which commit and on which file — the branch likely
