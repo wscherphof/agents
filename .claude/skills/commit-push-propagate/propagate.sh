@@ -13,15 +13,25 @@
 #
 #   * applies cleanly            -> keep it (real new content on files the
 #                                   branch does not customize)
+#   * conflicts on shared        -> the conflicted file is agents-repo
+#     scaffolding                   scaffolding the branch must NOT customize
+#                                   (.claude/hooks/**, .claude/skills/**,
+#                                   tools/**). The source is
+#                                   authoritative for these, so resolve toward
+#                                   THEIRS and commit — this catches up a branch
+#                                   that got an earlier iteration of the change
+#                                   under a different patch-id (which `git
+#                                   cherry` still lists, but which keeping-ours
+#                                   would silently leave stale as "superseded").
 #   * conflicts, superseded      -> the branch already has this change via a
 #                                   different commit (patch-id differs, so
 #                                   `git cherry` still lists it); keeping the
-#                                   branch's version of the conflicted files
-#                                   leaves no net change -> skip it, don't
-#                                   create an empty commit
-#   * conflicts, genuine         -> keeping the branch's version still leaves a
-#                                   net change (the commit also edits a
-#                                   customized file with content the branch
+#                                   branch's (customized) version of the
+#                                   conflicted files leaves no net change ->
+#                                   skip it, don't create an empty commit
+#   * conflicts, genuine         -> a customized file diverged, keeping the
+#                                   branch's version still leaves a net change
+#                                   (the commit also brings content the branch
 #                                   lacks) -> DON'T guess: abort that commit,
 #                                   stop this branch, and report it for a human
 #                                   hand-merge. Commits already banked are kept
@@ -31,8 +41,10 @@
 # Conflicts here are normal, not exceptional: settings branches customize files
 # like conf/.env, README.md and conf/COMPONENT.sh, so scaffolding commits that
 # touch those routinely collide. Keeping the branch's version is the safe
-# default for a customized file; the script only auto-resolves when doing so
-# changes nothing (superseded), and defers to a human otherwise.
+# default for a customized file. Shared scaffolding (the hooks and tools that
+# must be identical on every branch — see the merge hook's own refuse-list) is
+# the exception: there the source wins, so an older iteration on a branch is
+# synced up instead of being mistaken for a superseded change and left stale.
 
 set -uo pipefail
 
@@ -62,17 +74,38 @@ for b in "${BRANCHES[@]}"; do
     fi
     # cherry-pick did not complete: either a merge conflict or an empty result.
     uf=$(git diff --name-only --diff-filter=U)
-    if [ -n "$uf" ]; then
-      git checkout --ours -- $uf && git add -- $uf
-    fi
+    # Resolve each conflicted file by its role. Shared scaffolding
+    # (.claude/hooks/**, .claude/skills/**, tools/**) must be identical on every
+    # branch — none of it is mirrored from the project, and the merge hook forbids
+    # projects from overwriting the hooks/tools — so the source is authoritative:
+    # take THEIRS, which syncs up a branch carrying an earlier iteration. Any
+    # other file may be a legitimate per-branch customization (conf/.env, mirrored
+    # settings under .claude/agents|.agents|.github, .mcp.json, …): keep OURS, the
+    # safe default.
+    customized_conflict=0
+    while IFS= read -r f; do
+      [ -n "$f" ] || continue
+      case "$f" in
+      .claude/hooks/* | .claude/skills/* | tools/*) git checkout --theirs -- "$f" ;;
+      *) git checkout --ours -- "$f"; customized_conflict=1 ;;
+      esac
+      git add -- "$f"
+    done <<<"$uf"
     if git diff --cached --quiet HEAD; then
       # nothing left to add once the branch keeps its own version -> superseded
       git cherry-pick --skip >/dev/null 2>&1 || { git cherry-pick --abort >/dev/null 2>&1; git reset -q --hard HEAD; }
       echo "  skip $subj   [superseded — already present via another commit]"
       skipped=$((skipped+1))
+    elif [ "$customized_conflict" -eq 0 ]; then
+      # the only net change is shared scaffolding taken from the source (and/or
+      # cleanly-merged files) — safe to apply automatically, no human needed.
+      git -c core.editor=true cherry-pick --continue >/dev/null 2>&1
+      echo "  pick $subj   [scaffolding synced to source]"
+      applied=$((applied+1))
     else
-      # the commit also brings content the branch lacks on a customized file —
-      # a genuine divergence. Do not decide; leave it for a human.
+      # a customized file diverged and keeping the branch's version still leaves
+      # net change (the commit brings content the branch lacks) — a genuine
+      # divergence. Do not decide; leave it for a human.
       git cherry-pick --abort >/dev/null 2>&1
       echo "  STOP $subj"
       echo "       conflicts on: $(echo $uf | tr '\n' ' ')— needs hand-merge; stopping $b here"

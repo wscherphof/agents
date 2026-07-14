@@ -173,14 +173,19 @@ Handle each missing commit by its outcome:
 | Outcome of the single `git cherry-pick` | What it means | Action |
 |---|---|---|
 | **applies cleanly** | real new content, on files the branch doesn't customize | keep it |
-| **conflicts, superseded** | the branch already has this change via a different commit (patch-id differs, so `git cherry` still lists it); keeping the branch's version of the conflicted files leaves **no net change** | `--skip` it — don't create an empty commit |
-| **conflicts, genuine** | keeping the branch's version still leaves a net change: the commit also edits a customized file with content the branch lacks | **don't guess** — `--abort`, stop the branch, report it for a human hand-merge |
+| **conflicts on shared scaffolding** | the conflicted file is agents-repo scaffolding the branch must not customize (`.claude/hooks/**`, `.claude/skills/**`, `tools/**`) — a branch carrying an **earlier iteration** of the change (different patch-id, so `git cherry` still lists it) | resolve toward **theirs** (the source is authoritative) and **commit** — this syncs the stale branch up instead of mistaking it for superseded |
+| **conflicts, superseded** | the branch already has this change via a different commit (patch-id differs, so `git cherry` still lists it); keeping the branch's version of the conflicted **customized** files leaves **no net change** | `--skip` it — don't create an empty commit |
+| **conflicts, genuine** | a **customized** file diverged and keeping the branch's version still leaves a net change: the commit also brings content the branch lacks | **don't guess** — `--abort`, stop the branch, report it for a human hand-merge |
 
-Keeping the branch's own version of a conflicted customized file is the safe
-default; the script only auto-resolves when doing so changes nothing
-(superseded), and defers to a human otherwise. A branch stopped at a genuine
-conflict keeps (and pushes) the commits banked before it; the rest flow on a
-re-run once the blocker is hand-merged.
+Keeping the branch's own version of a conflicted **customized** file is the safe
+default. Shared scaffolding is the exception — the hooks, skills, and tools that
+must be identical on every branch (none of it is mirrored from the project) — so
+there the **source wins**, and an older iteration on a branch is synced up rather
+than mistaken for a superseded change and left stale. The script auto-resolves in
+exactly those two directions (keep-ours-when-no-net-change, take-theirs-for-shared)
+and defers to a human otherwise. A branch stopped at a genuine conflict keeps (and
+pushes) the commits banked before it; the rest flow on a re-run once the blocker is
+hand-merged.
 
 This logic lives in the helper **[`propagate.sh`](propagate.sh)** in this skill's
 directory. Run it from the agents-repo root with the source branch and the target
