@@ -22,13 +22,39 @@ set -euo pipefail
 
 set -x
 
-# --allow-releaseinfo-change: base-image apt repos (e.g. the ondrej/php PPA)
-# occasionally change their Release Label/Origin/Suite, which makes a plain
-# `apt update` exit non-zero. Under `set -e` that would abort the whole merge
-# before rsync is installed and before anything is mirrored/committed, so accept
-# the release-info change and carry on.
-sudo apt update --allow-releaseinfo-change
-sudo apt install -y rsync jq python3
+# Recover a possibly-interrupted dpkg state before installing anything. Some
+# base-image containers start with dpkg left mid-configure ("dpkg was
+# interrupted, you must manually run 'dpkg --configure -a' to correct the
+# problem"); the very next `apt install` then exits non-zero, and under `set -e`
+# that aborts the whole merge before rsync is even installed — nothing gets
+# mirrored, committed, or pushed. Reconfigure best-effort and carry on.
+sudo dpkg --configure -a || true
+
+# Install only the tools that are actually missing, and don't let a flaky apt
+# abort the mirror when they are already present. Only hard-fail (below) if a
+# required tool is still unavailable after the install attempt.
+merge_deps_missing=()
+for _t in rsync jq python3; do
+  command -v "$_t" >/dev/null 2>&1 || merge_deps_missing+=("$_t")
+done
+if [ ${#merge_deps_missing[@]} -gt 0 ]; then
+  # Only touch apt when something is actually missing — an already-provisioned
+  # container needs no network round-trip here. Neither step is fatal: the
+  # command -v gate below is the real check.
+  #
+  # --allow-releaseinfo-change: base-image apt repos (e.g. the ondrej/php PPA)
+  # occasionally change their Release Label/Origin/Suite, which makes a plain
+  # `apt update` exit non-zero. `|| true` keeps both apt steps from aborting the
+  # whole merge (before anything is mirrored/committed) on a transient hiccup.
+  sudo apt update --allow-releaseinfo-change || true
+  sudo apt install -y "${merge_deps_missing[@]}" || true
+fi
+for _t in rsync jq python3; do
+  command -v "$_t" >/dev/null 2>&1 || {
+    printf 'merge-agent-settings: error: required tool %s is unavailable and could not be installed\n' "$_t" >&2
+    exit 1
+  }
+done
 
 # --- temp bookkeeping -------------------------------------------------------
 TMPFILES=()
@@ -328,7 +354,7 @@ if [ -z "$target_branch" ]; then
   target_branch="$repo"
   if [ -n "$COMPONENT_REL" ]; then
     seg="${COMPONENT_REL##*/}"
-    case "${seg,,}" in "$repo"-*) seg="${seg:$((${#repo}+1))}" ;; esac
+    case "${seg,,}" in "$repo"-*) seg="${seg:$((${#repo} + 1))}" ;; esac
     target_branch="$target_branch-$seg"
   fi
 fi
