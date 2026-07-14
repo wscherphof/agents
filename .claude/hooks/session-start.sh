@@ -45,6 +45,15 @@ fi
 # visible in the transcript and under --debug.
 dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 (
+  # Give git a valid identity so Claude Code on the web's harness Stop hook can
+  # commit the freshly merged agent settings to the agents repo's settings
+  # branch — without a configured user.name/email that commit (and thus the Stop
+  # hook) would fail. Use the Claude identity here; project code commits made by
+  # the session get the Co-Authored-By trailer either way.
+  echo "• Setting up Claude git user..."
+  git config --global user.email noreply@anthropic.com
+  git config --global user.name Claude
+
   src_dir="$CLAUDE_PROJECT_DIR/src"
   AGENTS_REPO_DIR=$src_dir/$AGENTS_GIT_REPO
 
