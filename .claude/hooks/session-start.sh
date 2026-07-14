@@ -16,7 +16,7 @@ set -uo pipefail
 conf_dir="$CLAUDE_PROJECT_DIR/conf"
 # shellcheck source=/dev/null
 [ -f "$conf_dir/.env" ] && . "$conf_dir/.env"
-: "${AGENTS_GIT_ACCOUNT:=}" "${AGENTS_GIT_REPO:=}" "${AGENTS_COMPONENT_DIR:=}" "${AGENTS_START_DOCKER:=}" "${AGENTS_INTEGRATION_BRANCH:=}"
+: "${AGENTS_GIT_ACCOUNT:=}" "${AGENTS_GIT_REPO:=}" "${AGENTS_COMPONENT_DIR:=}" "${AGENTS_START_DOCKER:=}" "${AGENTS_INTEGRATION_BRANCH:=}" "${AGENTS_SETTINGS_BRANCH:=}"
 
 # On the scaffolding template branch (main), no project is configured
 # (AGENTS_GIT_ACCOUNT blank): none of the project clone/merge setup below
@@ -81,6 +81,11 @@ dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   # as env vars.
   export AGENTS_START_DOCKER
   export AGENTS_INTEGRATION_BRANCH
+
+  # Exported so merge-agent-settings.sh (a child process) picks up the override
+  # from conf/.env; without this the AGENTS_SETTINGS_BRANCH knob is silently
+  # ignored and the merge always targets the derived branch name.
+  export AGENTS_SETTINGS_BRANCH
 
   session_start_dir=$dir/session-start
   scripts_dir=$session_start_dir/scripts
