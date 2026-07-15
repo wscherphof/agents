@@ -132,21 +132,29 @@ phase_file="$dir/.session-start-phase"
     bash "$scripts_dir/start-docker.sh" &
   fi &>"$scripts_dir/start-docker.log"
 
+  # Merge FIRST, before the project-controlled setup scripts. The mirror is this
+  # hook's core purpose and is independent of PROJECT.sh/COMPONENT.sh (it only
+  # reads the checked-in agent-settings files, not anything they install/codegen).
+  # Those scripts do flaky network installs (npm, playwright); running them first
+  # under the subshell's `set -e` would abort before the merge on any hiccup,
+  # silently skipping the settings-branch update. Merging first makes the mirror
+  # immune to project-setup failures, while a later failure is still reported.
+  phase "Merging agent settings"
+  cd "$AGENTS_REPO_DIR" || exit
+  bash "$scripts_dir/merge-agent-settings.sh"
+
   phase "Running PROJECT.sh"
   cd "$AGENTS_REPO_DIR" || exit
   bash "$conf_dir/PROJECT.sh"
 
   # Only when a component was configured; otherwise its dir is just the repo
-  # root and PROJECT.sh already covered that.
+  # root and PROJECT.sh already covered that. Runs after PROJECT.sh, which may
+  # set up prerequisites it needs (e.g. the pinned node version).
   if [ -n "$AGENTS_COMPONENT_DIR" ]; then
     phase "Running COMPONENT.sh"
     cd "$AGENTS_COMPONENT_DIR" || exit
     bash "$conf_dir/COMPONENT.sh"
   fi
-
-  phase "Merging agent settings"
-  cd "$AGENTS_REPO_DIR" || exit
-  bash "$scripts_dir/merge-agent-settings.sh"
 
 ) &>"$dir/session-start.log"
 hook_status=$?
@@ -159,7 +167,7 @@ hook_status=$?
 if [ "$hook_status" -eq 0 ]; then
   echo "session-start-hook: OK — cloned $AGENTS_GIT_ACCOUNT/$AGENTS_GIT_REPO and merged agent settings into src/. Any background installs (az CLI / Docker) may still be finishing; see their logs under .claude/hooks/session-start/scripts/."
 else
-  echo "session-start-hook: FAILED during \"$(cat "$phase_file" 2>/dev/null || echo 'unknown step')\" (exit $hook_status). See .claude/hooks/session-start.log — the project clone under src/ and/or the merged agent settings may be missing or incomplete; do not assume the project is set up."
+  echo "session-start-hook: FAILED during \"$(cat "$phase_file" 2>/dev/null || echo 'unknown step')\" (exit $hook_status). Setup stopped at that step (steps before it did complete). See .claude/hooks/session-start.log; do not assume the project is fully set up."
 fi
 
 # The hook itself always succeeds: a setup failure is reported in-band via the
