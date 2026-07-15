@@ -4,29 +4,161 @@
 
 # GeoWEP — Claude Code Instructions
 
-Project guidance lives in [.github/](.github/) as GitHub Copilot customisations. Treat them as authoritative for this repo.
+GeoWEP is a GIS application undergoing migration from AngularJS 1.x to modern
+Angular. Always verify which codebase you're modifying before making changes.
 
-## Core instructions
+Claude Code is the assumed agent for this repository. Global rules live in this
+file (always loaded). Folder-specific rules live in nested `CLAUDE.md` files and
+load automatically when you work in that subtree — see the map below.
 
-See [.github/copilot-instructions.md](.github/copilot-instructions.md) for project overview and general coding rules.
+## Instruction Map
 
-## Domain-specific instructions
+Scoped guidance loads automatically when you touch files in these directories:
 
-Apply these when working in the relevant area:
+- `app/CLAUDE.md` — legacy AngularJS app (`app/`).
+- `docker/CLAUDE.md` — Docker operations (`./gw`, container behavior).
+- `docker/postgis/conf/ddl/CLAUDE.md` — PostgreSQL/PostGIS migrations.
+- `docker/ng/CLAUDE.md` — modern Angular app and SlickGrid integration.
 
-- [.github/instructions/database-operations.instructions.md](.github/instructions/database-operations.instructions.md) — read-only PostgreSQL/PostGIS diagnostics
-- [.github/instructions/docker-operations.instructions.md](.github/instructions/docker-operations.instructions.md) — Docker operational files under `docker/`
-- [.github/instructions/legacy-angularjs.instructions.md](.github/instructions/legacy-angularjs.instructions.md) — legacy AngularJS app under `app/`
-- [.github/instructions/postgis-migrations.instructions.md](.github/instructions/postgis-migrations.instructions.md) — PostgreSQL/PostGIS migrations
+Reusable subagents live in `.claude/agents/`:
 
-## Agents
+- `postgres-postgis-advisor` — PostgreSQL 16 / PostGIS 3.4 query and schema help.
+- `angular-advisor` — modern Angular help for `docker/ng` (uses Angular MCP).
+- `instructions-maintainer` — keeps this guidance up to date.
 
-Reusable agents for specialised tasks:
+Skills live in `.claude/skills/` (invocable as `/skill-name`):
 
-- [.github/agents/instructions-maintainer.agent.md](.github/agents/instructions-maintainer.agent.md) — keeps instruction files up to date
-- [.github/agents/postgres-postgis-advisor.agent.md](.github/agents/postgres-postgis-advisor.agent.md) — PostGIS schema and query advice
+- `merge-to-integration` — land local changes on `integration` via a policy-gated
+  Azure DevOps PR.
 
-## Skills
+## OpenSpec
 
-- [.github/skills/open-localhost-app/SKILL.md](.github/skills/open-localhost-app/SKILL.md) — open the app at `https://localhost:7443`
+- The OpenSpec root is **not** at the repo root — it lives at
+  `docker/postgis/conf/ddl/geowep/openspec/`. Change proposals, specs, and tasks
+  live under `docker/postgis/conf/ddl/geowep/openspec/changes/`.
+- OpenSpec commands (and skills like `/opsx:apply`, `/opsx:explore`) resolve to
+  the **nearest** `openspec/` root, so run them from
+  `docker/postgis/conf/ddl/geowep/` (or a subdirectory). When invoking from the
+  repo root — for example `/opsx:apply` in Claude Code web — first `cd` into
+  `docker/postgis/conf/ddl/geowep/`, otherwise the change will not be found.
+- List active changes with `openspec list --json` from that directory.
+
+## Architecture
+
+### Two Parallel Codebases
+
+- **Legacy (Production)**: `app/` — AngularJS 1.8.3 + Vite + OpenLayers 8.
+- **Modern (Migration)**: `docker/ng/` — Angular standalone components + signals
+  + TypeScript.
+
+Key components: Map view (OpenLayers), grid views (SlickGrid), tab system, GIS
+tools (selection, measurement, point editor).
+
+## Build and Test
+
+```bash
+# AngularJS dev server (port 5173)
+cd app && npm run dev
+
+# Modern Angular dev server
+cd docker/ng && npm start
+
+# Lint and format
+npm run lint
+```
+
+No automated unit tests. Quality is enforced via linting only:
+
+```bash
+npm run pretest  # ESLint + Prettier check
+```
+
+## Commit Messages
+
+- Commit messages **must** follow **Conventional Commits 1.0.0**.
+- Use a scope for changes in `docker/`, where the scope equals the direct
+  subdirectory name under `docker/` (for example: `api`, `postgis`, `proxy`,
+  `ng`, `geoserver`, `mapfish`, `mapproxy`, `qgis`, `cron`, `app`).
+- Example format: `fix(api): handle login popup close behavior correctly`.
+
+## Pull Requests
+
+- This project is hosted on **Azure DevOps** (org `merkatordev`, project
+  `GeoWEP`), not GitHub — there is no `gh` CLI.
+- PRs go **from a branch on your fork to `master` in the main repo** (a
+  cross-repo fork PR). Push the feature branch to your fork only; do **not**
+  push feature branches to the main `GeoWEP` repo.
+- `az repos pr create` does **not** support fork PRs. Create the fork PR via
+  the REST API by POSTing to the main repo's `pullrequests` endpoint with
+  `sourceRefName`/`targetRefName` and a `forkSource.repository.id` pointing at
+  your fork. Then verify the created PR's `forkSource.repository` is the fork.
+
+## Working on Changes
+
+- Avoid implementing feature work directly on shared branches such as `master`,
+  `develop`, or long-lived integration branches — use a feature branch.
+
+## Database Diagnostics
+
+- During local development, PostgreSQL/PostGIS is normally running in the
+  `geowep-postgis` container and can be queried for diagnostics.
+- Prefer running `psql` inside `geowep-postgis` and rely on container
+  environment variables for connection defaults instead of passing explicit
+  `-h`, `-p`, `-U`, or `-d` flags unless needed.
+- Diagnostics must be **read-only** unless the user explicitly asks for writes.
+
+```bash
+# Verify DB/session context
+docker exec geowep-postgis sh -lc 'psql -Atqc "select now(), current_database(), current_user;"'
+
+# List core data-model tables (geowep.tbl_*)
+docker exec geowep-postgis psql -Atqc "select table_name from information_schema.tables where table_schema = 'geowep' and table_type = 'BASE TABLE' and table_name like 'tbl\\_%' escape '\\' order by table_name;"
+
+# Example count probe
+docker exec geowep-postgis sh -lc 'psql -Atqc "select count(*) from geowep.tbl_onderzoek_base;"'
+```
+
+- Core data-model tables are the `geowep.tbl_*` base tables. Refresh this list
+  with the `information_schema` query above whenever they are added or removed:
+  `tbl_aankoop`, `tbl_features`, `tbl_logboek`, `tbl_onderzoek_base`,
+  `tbl_onderzoekstatus`, `tbl_plantekening`, `tbl_print`, `tbl_spatial_ref_sys`,
+  `tbl_subproject`, `tbl_xymeting`, `tbl_zmeting`.
+
+## Coordinate System
+
+Default SRID: **28992** (Rijksdriehoekstelsel — Dutch national grid).
+
+## Naming
+
+Dutch business terms: `onderzoeken`, `plantekeningen`, `notities`,
+`projectkaarten`.
+
+## Critical Gotchas
+
+- **Always stop the cron container after `./gw run`**: run `docker container
+  stop geowep-cron` every time you start containers. The cron service generates
+  database log errors during development and should not run in local dev.
+- Always check whether you are editing `app/` (AngularJS) or `docker/ng/`
+  (Angular) first.
+- Local container names follow `$DOCKER_USER-$DOCKER_REPO`, for example
+  `geowep-postgis`, `geowep-cron`, `geowep-api`.
+
+## MCP Tools
+
+- Local MCP server source lives in `mcp/` and is named `geowep-local-tools`.
+- Current local tools: `echo` (connectivity/smoke-test — returns provided text).
+- Runtime prerequisite: `WORKSPACE_FOLDER` must be configured in
+  `.vscode/mcp.json`.
+- MCP tool shell/network calls should use explicit timeouts where possible; do
+  not add MCP commands that can block indefinitely.
+- MCP tools should prepare state and return data (start servers, resolve URLs,
+  check environment); they do not directly control browser tabs.
+
+## Project Conventions
+
+- Whenever a significant project change is made, update these instructions if it
+  affects architecture, MCP tools, framework versions, development workflow, or
+  other guidance future agents should know. Use the `instructions-maintainer`
+  subagent for this.
+- Wrap text at 80 characters in `CLAUDE.md` files and `.claude/agents/*.md`.
 
