@@ -173,7 +173,7 @@ Handle each missing commit by its outcome:
 | Outcome of the single `git cherry-pick` | What it means | Action |
 |---|---|---|
 | **applies cleanly** | real new content, on files the branch doesn't customize | keep it |
-| **conflicts on shared scaffolding** | the conflicted file is agents-repo scaffolding the branch must not customize (`.claude/hooks/**`, `.claude/skills/**`, `tools/**`) — a branch carrying an **earlier iteration** of the change (different patch-id, so `git cherry` still lists it) | resolve toward **theirs** (the source is authoritative) and **commit** — this syncs the stale branch up instead of mistaking it for superseded |
+| **conflicts on shared scaffolding** | the conflicted file is agents-repo scaffolding the branch must not customize (`.claude/hooks/**`, `.claude/skills/**`, `tools/**`) — a branch carrying a **different iteration** of the change (different patch-id, so `git cherry` still lists it) | resolve to the **source's current version** (`git checkout $SRC`, not `--theirs` — which would be the picked commit's possibly-stale version) so the file always equals the source; combined with the pre-sync this nets to zero change and the commit skips as superseded |
 | **conflicts, superseded** | the branch already has this change via a different commit (patch-id differs, so `git cherry` still lists it); keeping the branch's version of the conflicted **customized** files leaves **no net change** | `--skip` it — don't create an empty commit |
 | **conflicts, genuine** | a **customized** file diverged and keeping the branch's version still leaves a net change: the commit also brings content the branch lacks | **don't guess** — `--abort`, stop the branch, report it for a human hand-merge |
 
@@ -182,7 +182,7 @@ default. Shared scaffolding is the exception — the hooks, skills, and tools th
 must be identical on every branch (none of it is mirrored from the project) — so
 there the **source wins**, and an older iteration on a branch is synced up rather
 than mistaken for a superseded change and left stale. The script auto-resolves in
-exactly those two directions (keep-ours-when-no-net-change, take-theirs-for-shared)
+exactly those two directions (keep-ours-when-no-net-change, force-shared-to-source)
 and defers to a human otherwise. A branch stopped at a genuine conflict keeps (and
 pushes) the commits banked before it; the rest flow on a re-run once the blocker is
 hand-merged.

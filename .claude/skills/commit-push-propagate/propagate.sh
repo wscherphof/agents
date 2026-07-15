@@ -123,16 +123,19 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
     # Resolve each conflicted file by its role. Shared scaffolding
     # (.claude/hooks/**, .claude/skills/**, tools/**) must be identical on every
     # branch — none of it is mirrored from the project, and the merge hook forbids
-    # projects from overwriting the hooks/tools — so the source is authoritative:
-    # take THEIRS, which syncs up a branch carrying an earlier iteration. Any
-    # other file may be a legitimate per-branch customization (conf/.env, mirrored
-    # settings under .claude/agents|.agents|.github, .mcp.json, …): keep OURS, the
-    # safe default.
+    # projects from overwriting the hooks/tools — so resolve it to the SOURCE's
+    # current version ($SRC), not --theirs. --theirs would be the picked commit's
+    # version, which is stale when replaying an OLD commit onto a branch already
+    # caught up by the pre-sync above (it would downgrade the file and fabricate
+    # net change, tripping a spurious BLOCK). Forcing to $SRC keeps the branch's
+    # already-synced version and nets to zero change. Any other file may be a
+    # legitimate per-branch customization (conf/.env, mirrored settings under
+    # .claude/agents|.agents|.github, .mcp.json, …): keep OURS, the safe default.
     customized_conflict=0
     while IFS= read -r f; do
       [ -n "$f" ] || continue
       case "$f" in
-      .claude/hooks/* | .claude/skills/* | tools/*) git checkout --theirs -- "$f" ;;
+      .claude/hooks/* | .claude/skills/* | tools/*) git checkout "$SRC" -- "$f" ;;
       *) git checkout --ours -- "$f"; customized_conflict=1 ;;
       esac
       git add -- "$f"
