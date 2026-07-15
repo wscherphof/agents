@@ -42,22 +42,40 @@ fi
 
 # Child scripts are setup steps. Send their stdout to stderr so it stays out of
 # Claude's context (SessionStart adds hook stdout to context) while remaining
-# visible in the transcript and under --debug.
+# visible in the transcript and under --debug. The ONE thing we do feed into
+# context is a single status line, emitted after the subshell below, saying
+# whether setup succeeded — so Claude can report the hook outcome up front (see
+# the "session-start hook outcome" instruction in CLAUDE.md).
 dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# The current setup step, recorded before each one runs, so a failure can name
+# the step that died. Read back after the subshell only on failure.
+phase_file="$dir/.session-start-phase"
 (
+  # Abort the whole setup on the first failing step, so its exit status reflects
+  # whether setup actually completed (background installs excepted — they are
+  # fire-and-forget and reported separately).
+  set -e
+
+  # Record + announce the current setup step. The marker file lets the status
+  # line after the subshell name the step that failed.
+  phase() {
+    printf '%s\n' "$1" >"$phase_file"
+    echo "• $1..."
+  }
+
   # Give git a valid identity so Claude Code on the web's harness Stop hook can
   # commit the freshly merged agent settings to the agents repo's settings
   # branch — without a configured user.name/email that commit (and thus the Stop
   # hook) would fail. Use the Claude identity here; project code commits made by
   # the session get the Co-Authored-By trailer either way.
-  echo "• Setting up Claude git user..."
+  phase "Setting up Claude git user"
   git config --global user.email noreply@anthropic.com
   git config --global user.name Claude
 
   src_dir="$CLAUDE_PROJECT_DIR/src"
   AGENTS_REPO_DIR=$src_dir/$AGENTS_GIT_REPO
 
-  echo "Cloning $AGENTS_GIT_ACCOUNT/$AGENTS_GIT_REPO into $AGENTS_REPO_DIR..."
+  phase "Cloning $AGENTS_GIT_ACCOUNT/$AGENTS_GIT_REPO into $AGENTS_REPO_DIR"
   mkdir -p "$src_dir"
   if [ -d "$AGENTS_REPO_DIR/.git" ]; then
     git -C "$AGENTS_REPO_DIR" pull --ff-only
@@ -79,7 +97,7 @@ dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   # issue/work-item/PR reference — into a web link to the project repo's host
   # (instead of a broken workspace-relative one). ~/.local/bin is ahead of the
   # Bash tool's login-shell PATH.
-  echo "• Linking srclink onto PATH..."
+  phase "Linking srclink onto PATH"
   mkdir -p "$HOME/.local/bin"
   ln -sf "$AGENTS_TOOLS_DIR/srclink.sh" "$HOME/.local/bin/srclink"
 
@@ -114,20 +132,36 @@ dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     bash "$scripts_dir/start-docker.sh" &
   fi &>"$scripts_dir/start-docker.log"
 
-  echo "• Running PROJECT.sh..."
+  phase "Running PROJECT.sh"
   cd "$AGENTS_REPO_DIR" || exit
   bash "$conf_dir/PROJECT.sh"
 
   # Only when a component was configured; otherwise its dir is just the repo
   # root and PROJECT.sh already covered that.
   if [ -n "$AGENTS_COMPONENT_DIR" ]; then
-    echo "• Running COMPONENT.sh..."
+    phase "Running COMPONENT.sh"
     cd "$AGENTS_COMPONENT_DIR" || exit
     bash "$conf_dir/COMPONENT.sh"
   fi
 
-  echo "• Merging agent settings..."
+  phase "Merging agent settings"
   cd "$AGENTS_REPO_DIR" || exit
   bash "$scripts_dir/merge-agent-settings.sh"
 
 ) &>"$dir/session-start.log"
+hook_status=$?
+
+# Feed a single status line into the session context (SessionStart adds hook
+# stdout to context). CLAUDE.md instructs Claude to relay this up front, so a
+# degraded session — clone or settings merge that silently failed — is surfaced
+# instead of worked on obliviously. Absence of this line in a remote project
+# session is itself a signal that setup did not reach this point.
+if [ "$hook_status" -eq 0 ]; then
+  echo "session-start-hook: OK — cloned $AGENTS_GIT_ACCOUNT/$AGENTS_GIT_REPO and merged agent settings into src/. Any background installs (az CLI / Docker) may still be finishing; see their logs under .claude/hooks/session-start/scripts/."
+else
+  echo "session-start-hook: FAILED during \"$(cat "$phase_file" 2>/dev/null || echo 'unknown step')\" (exit $hook_status). See .claude/hooks/session-start.log — the project clone under src/ and/or the merged agent settings may be missing or incomplete; do not assume the project is set up."
+fi
+
+# The hook itself always succeeds: a setup failure is reported in-band via the
+# status line above (which must reach context), not via a non-zero hook exit.
+exit 0

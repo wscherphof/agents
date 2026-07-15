@@ -30,6 +30,33 @@ In a remote session, a Claude Code Web session starts in **this** repo (the
 settings/instructions back into this repo. Keep the two repos' git workflows
 separate:
 
+## Report the session-start hook outcome
+
+The session-start hook does all the project setup — cloning the project into
+[src/](src/), running `PROJECT.sh`/`COMPONENT.sh`, and merging the agent
+settings. If it failed partway, the session is degraded (no clone, stale or
+missing merged settings) and must not be worked in as if it were set up. The
+hook keeps its verbose output in
+[.claude/hooks/session-start.log](.claude/hooks/session-start.log) but emits
+**one status line into your context**, of the form:
+
+```
+session-start-hook: OK — cloned <account>/<repo> and merged agent settings into src/. …
+session-start-hook: FAILED during "<step>" (exit N). See .claude/hooks/session-start.log …
+```
+
+**State this outcome up front, in the same opening message as the session-rename
+suggestion below** (see "Naming the session"): one line on success (e.g. "✅
+session-start hook completed — project cloned and settings merged"), and on
+failure relay the failing step and the log path, and warn that the project may
+not be set up before doing any project work.
+
+Because success is stated affirmatively, its **absence is itself a signal**: in a
+remote project session, if no `session-start-hook:` line appears in your context,
+setup did not reach the end — say so rather than assuming all is well. (This
+applies only to remote project sessions; the hook is inert locally and on the
+`main` template branch, where no line is emitted and none is expected.)
+
 ## Naming the session
 
 The session name must be **prefixed with the exact name of the agents-repo
