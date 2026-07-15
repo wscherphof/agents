@@ -69,6 +69,17 @@ phase_file="$dir/.session-start-phase"
   # hook) would fail. Use the Claude identity here; project code commits made by
   # the session get the Co-Authored-By trailer either way.
   phase "Setting up Claude git user"
+  # Capture git's effective identity as configured by the environment (Claude
+  # Code on the web's harness may set one) BEFORE we override it below. The
+  # settings-mirror commit in merge-agent-settings.sh is authored under THIS
+  # captured identity, so the mirror is attributed to whoever's running the
+  # session — never a hardcoded person, and never the transient Claude identity
+  # we set here solely for the harness Stop-hook backstop commit. Empty if the
+  # environment configured no identity; merge-agent-settings.sh falls back to
+  # the Claude identity in that case.
+  AGENTS_ORIG_GIT_NAME="$(git config user.name 2>/dev/null || true)"
+  AGENTS_ORIG_GIT_EMAIL="$(git config user.email 2>/dev/null || true)"
+  export AGENTS_ORIG_GIT_NAME AGENTS_ORIG_GIT_EMAIL
   # Clear a stale global-config lock before writing. On resume the session runs
   # in a container that reuses prior state; a `.gitconfig.lock` left behind by an
   # interrupted earlier run makes `git config --global` fail with "could not lock
