@@ -69,6 +69,14 @@ phase_file="$dir/.session-start-phase"
   # hook) would fail. Use the Claude identity here; project code commits made by
   # the session get the Co-Authored-By trailer either way.
   phase "Setting up Claude git user"
+  # Clear a stale global-config lock before writing. On resume the session runs
+  # in a container that reuses prior state; a `.gitconfig.lock` left behind by an
+  # interrupted earlier run makes `git config --global` fail with "could not lock
+  # config file … File exists" (exit 255), aborting the whole subshell under
+  # `set -e` and silently skipping the merge/commit/push. This hook is the only
+  # thing touching the global config at session start, so any lock present is
+  # stale (no concurrent git process) and safe to remove.
+  rm -f "${GIT_CONFIG_GLOBAL:-$HOME/.gitconfig}.lock"
   git config --global user.email noreply@anthropic.com
   git config --global user.name Claude
 
