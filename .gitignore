@@ -2,3 +2,7 @@
 /src/
 
 *.log
+
+# Runtime marker the session-start hook writes to name the step in progress
+# (read back only to report which step failed).
+.session-start-phase
