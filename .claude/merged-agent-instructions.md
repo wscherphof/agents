@@ -84,19 +84,22 @@ npm run pretest  # ESLint + Prettier check
 ## Pull Requests
 
 - This project is hosted on **Azure DevOps** (org `merkatordev`, project
-  `GeoWEP`), not GitHub — there is no `gh` CLI.
-- PRs go **from a branch on your fork to `master` in the main repo** (a
-  cross-repo fork PR). Push the feature branch to your fork only; do **not**
-  push feature branches to the main `GeoWEP` repo.
-- `az repos pr create` does **not** support fork PRs. Create the fork PR via
-  the REST API by POSTing to the main repo's `pullrequests` endpoint with
-  `sourceRefName`/`targetRefName` and a `forkSource.repository.id` pointing at
-  your fork. Then verify the created PR's `forkSource.repository` is the fork.
+  `GeoWEP`), not GitHub — use the Azure DevOps CLI (`az` with the
+  `azure-devops` extension, e.g. `az repos`, `az repos pr`), not `gh`.
+- Feature branches live on the main `GeoWEP` repo. Push your feature branch
+  there and open the PR from that branch to `master` in the same repo. Forks
+  are no longer used.
+- Create the PR with `az repos pr create` (source = your feature branch,
+  target = `master`).
 
 ## Working on Changes
 
 - Avoid implementing feature work directly on shared branches such as `master`,
   `develop`, or long-lived integration branches — use a feature branch.
+- When you create a branch whose name the user did not explicitly specify,
+  always prefix the branch name with `claude/` (for example,
+  `claude/fix-login-popup`). If the user gives an explicit branch name, use it
+  verbatim without adding the prefix.
 
 ## Database Diagnostics
 
