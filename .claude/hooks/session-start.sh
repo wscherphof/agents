@@ -117,21 +117,6 @@ phase_file="$dir/.session-start-phase"
   session_start_dir=$dir/session-start
   scripts_dir=$session_start_dir/scripts
 
-  # With an Azure DevOps PAT set, install the az CLI + devops extension so
-  # Claude can push and open PRs. The az devops commands authenticate via the
-  # AZURE_DEVOPS_EXT_PAT env var, so no extra login step is needed.
-  if [ -n "${AZURE_DEVOPS_EXT_PAT:-}" ]; then
-    echo "• Installing Azure CLI and devops extension..."
-    bash "$scripts_dir/install-az-devops.sh" &
-  fi &>"$scripts_dir/install-az-devops.log"
-
-  # When AGENTS_START_DOCKER=true, bring up the Docker daemon in the background
-  # (the image must already have Docker installed).
-  if [ "${AGENTS_START_DOCKER:-}" = "true" ]; then
-    echo "• Starting Docker daemon..."
-    bash "$scripts_dir/start-docker.sh" &
-  fi &>"$scripts_dir/start-docker.log"
-
   # Merge FIRST, before the project-controlled setup scripts. The mirror is this
   # hook's core purpose and is independent of PROJECT.sh/COMPONENT.sh (it only
   # reads the checked-in agent-settings files, not anything they install/codegen).
@@ -155,6 +140,21 @@ phase_file="$dir/.session-start-phase"
     cd "$AGENTS_COMPONENT_DIR" || exit
     bash "$conf_dir/COMPONENT.sh"
   fi
+
+  # With an Azure DevOps PAT set, install the az CLI + devops extension so
+  # Claude can push and open PRs. The az devops commands authenticate via the
+  # AZURE_DEVOPS_EXT_PAT env var, so no extra login step is needed.
+  if [ -n "${AZURE_DEVOPS_EXT_PAT:-}" ]; then
+    echo "• Installing Azure CLI and devops extension..."
+    bash "$scripts_dir/install-az-devops.sh" &
+  fi &>"$scripts_dir/install-az-devops.log"
+
+  # When AGENTS_START_DOCKER=true, bring up the Docker daemon in the background
+  # (the image must already have Docker installed).
+  if [ "${AGENTS_START_DOCKER:-}" = "true" ]; then
+    echo "• Starting Docker daemon..."
+    bash "$scripts_dir/start-docker.sh" &
+  fi &>"$scripts_dir/start-docker.log"
 
 ) &>"$dir/session-start.log"
 hook_status=$?
