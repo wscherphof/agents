@@ -374,9 +374,15 @@ msg="chore(agents): mirror agent settings from $AGENTS_GIT_ACCOUNT/$AGENTS_GIT_R
 if [ -n "$COMPONENT_REL" ]; then msg="$msg (component: $COMPONENT_REL)"; fi
 msg="$msg @ $SRC_SHA"
 
+# Author the mirror commit under the identity captured by session-start.sh
+# before it set the Claude identity for the harness backstop commit — i.e. the
+# identity the environment (the Claude Code Web harness) had configured at
+# session start. Nothing is hardcoded to a person: with no captured identity
+# (env configured none) this falls back to the Claude identity now in global
+# config.
 git -C "$DEST" \
-  -c user.name="agents session-start" \
-  -c user.email="wouter.scherphof@merkator.com" \
+  -c user.name="${AGENTS_ORIG_GIT_NAME:-Claude}" \
+  -c user.email="${AGENTS_ORIG_GIT_EMAIL:-noreply@anthropic.com}" \
   commit -m "$msg" >&2
 # Plain (non-forced) push: a fast-forward onto the settings branch succeeds; if
 # the branch has diverged (or the name is invalid/colliding) it fails. We do NOT
