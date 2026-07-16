@@ -136,6 +136,22 @@ Default SRID: **28992** (Rijksdriehoekstelsel — Dutch national grid).
 Dutch business terms: `onderzoeken`, `plantekeningen`, `notities`,
 `projectkaarten`.
 
+## Onderzoekstype Map Icons
+
+Map icons for onderzoekstypen live in **three** places, all keyed by the
+onderzoekstype's `naam`. When adding an onderzoekstype, add its icon to all
+three:
+
+- Legacy app: the `svgs` map in `app/src/map/mapService.js` (inline SVG path;
+  color applied by replacing `#000000`).
+- Modern Angular app: the `svgs` map in
+  `docker/ng/src/app/layers/layer/meetpunten/svg.ts` (same format).
+- GeoServer: one SVG file per type in
+  `docker/geoserver/conf/GeoWEP/workspaces/GeoWEP/styles/meetpunten/<naam>.svg`,
+  using `param(colour)` for the dynamic color. `meetpunten.css` resolves the
+  file generically via `meetpunten/${onderzoekstype}.svg`, so no style-rule
+  change is needed.
+
 ## Critical Gotchas
 
 - **Always stop the cron container after `./gw run`**: run `docker container
