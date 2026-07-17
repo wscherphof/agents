@@ -131,6 +131,16 @@ docker exec geowep-postgis sh -lc 'psql -Atqc "select count(*) from geowep.tbl_o
 
 Default SRID: **28992** (Rijksdriehoekstelsel — Dutch national grid).
 
+## Language
+
+Write all technical natural language in English: documentation, code
+comments, commit messages, and pull-request descriptions. Keep this rule even
+though parts of the domain are Dutch — database object names (schemas, tables,
+columns, and `ref_*` values such as `onderzoekstype`) and Azure DevOps work
+items (titles, descriptions, comments) stay in Dutch. Those Dutch identifiers
+and any quoted work-item text are kept verbatim; only the prose around them is
+English.
+
 ## Naming
 
 Dutch business terms: `onderzoeken`, `plantekeningen`, `notities`,
