@@ -33,15 +33,25 @@ Skills live in `.claude/skills/` (invocable as `/skill-name`):
 
 ## OpenSpec
 
-- The OpenSpec root is **not** at the repo root — it lives at
-  `docker/postgis/conf/ddl/geowep/openspec/`. Change proposals, specs, and tasks
+There are **two** OpenSpec roots, split by concern:
+
+- **Application root** — `openspec/` at the repo root. Owns changes to the
+  application layer (`app/`, `docker/ng/`, and anything outside the DDL tree).
+- **Database root** — `docker/postgis/conf/ddl/geowep/openspec/`. Owns database
+  work (schema migrations, DDL, PostGIS). Change proposals, specs, and tasks
   live under `docker/postgis/conf/ddl/geowep/openspec/changes/`.
+
 - OpenSpec commands (and skills like `/opsx:apply`, `/opsx:explore`) resolve to
-  the **nearest** `openspec/` root, so run them from
-  `docker/postgis/conf/ddl/geowep/` (or a subdirectory). When invoking from the
-  repo root — for example `/opsx:apply` in Claude Code web — first `cd` into
-  `docker/postgis/conf/ddl/geowep/`, otherwise the change will not be found.
-- List active changes with `openspec list --json` from that directory.
+  the **nearest** `openspec/` root. Run them from the directory matching the
+  concern:
+  - Application changes: run from the repo root (or `app/` / `docker/ng/`);
+    these resolve to the repo-root root.
+  - Database changes: run from `docker/postgis/conf/ddl/geowep/` (or a
+    subdirectory); these resolve to the DDL root. When invoking from the repo
+    root — for example `/opsx:apply` in Claude Code web — first `cd` into
+    `docker/postgis/conf/ddl/geowep/`, otherwise the change will not be found.
+- List active changes with `openspec list --json`; the resolved root is echoed
+  in the JSON `root.path`, so check it to confirm which root you are acting on.
 
 ## Architecture
 
@@ -130,6 +140,16 @@ docker exec geowep-postgis sh -lc 'psql -Atqc "select count(*) from geowep.tbl_o
 ## Coordinate System
 
 Default SRID: **28992** (Rijksdriehoekstelsel — Dutch national grid).
+
+## Language
+
+Write all technical natural language in English: documentation, code
+comments, commit messages, and pull-request descriptions. Keep this rule even
+though parts of the domain are Dutch — database object names (schemas, tables,
+columns, and `ref_*` values such as `onderzoekstype`) and Azure DevOps work
+items (titles, descriptions, comments) stay in Dutch. Those Dutch identifiers
+and any quoted work-item text are kept verbatim; only the prose around them is
+English.
 
 ## Naming
 
