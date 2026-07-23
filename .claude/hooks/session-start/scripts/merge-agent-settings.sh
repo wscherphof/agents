@@ -261,22 +261,37 @@ copy_referenced_files() {
 }
 
 # --- 6. directory mirror (union of layers, with deletions) ------------------
-mirror_dir() { # mirror_dir <relpath>
-  local rel="$1" layer staging out copied=false
+# mirror_dir <relpath> [rsync-exclude ...]
+# Optional trailing args are rsync --exclude patterns (relative to <relpath>)
+# applied to BOTH the staging copy and the --delete sync, so matched entries in
+# the destination are never overwritten NOR pruned. This is how the agents repo
+# protects its OWN content that happens to live under a mirrored dir — notably
+# its scaffolding skills under .claude/skills/ (see the call site), which the
+# project source doesn't have and must not be deleted from the settings branch.
+mirror_dir() {
+  local rel="$1"
+  shift
+  local rsync_excl=() e
+  for e in "$@"; do rsync_excl+=(--exclude="$e"); done
+  local layer staging out copied=false
   staging="$(mktemp -d)"
   TMPDIRS+=("$staging")
   for layer in "${SRC_LAYERS[@]}"; do
     if [ -d "$layer/$rel" ]; then
-      rsync -a "$layer/$rel/" "$staging/" # component overlays root
+      rsync -a "${rsync_excl[@]}" "$layer/$rel/" "$staging/" # component overlays root
       copied=true
     fi
   done
   out="$DEST/$rel"
   if [ "$copied" = true ]; then
     mkdir -p "$out"
-    rsync -a --delete "$staging/" "$out/" # exact union; prune stale files
-  else
-    if [ -e "$out" ]; then rm -rf "$out"; fi # mirror: source dropped it
+    rsync -a --delete "${rsync_excl[@]}" "$staging/" "$out/" # exact union; prune stale (except excludes)
+  elif [ ${#rsync_excl[@]} -gt 0 ] && [ -d "$out" ]; then
+    # Source dropped the dir, but excludes protect content living here: prune
+    # everything except the protected entries rather than removing the dir.
+    rsync -a --delete "${rsync_excl[@]}" "$staging/" "$out/"
+  elif [ -e "$out" ]; then
+    rm -rf "$out" # mirror: source dropped it (nothing protected here)
   fi
 }
 
@@ -321,6 +336,13 @@ mirror_settings
 mirror_mcp
 copy_referenced_files
 mirror_dir .claude/agents
+# .claude/skills is shared: the agents repo keeps its OWN scaffolding skills
+# here (commit-push-propagate, integration-pr) alongside any the project ships.
+# Exclude them so the project mirror never prunes them off the settings branch —
+# integration-pr in particular is used by remote sessions. Keep this list in
+# sync with propagate.sh's scaffolding-skills case.
+mirror_dir .claude/skills commit-push-propagate/ integration-pr/
+mirror_dir .claude/commands
 mirror_dir .agents
 mirror_dir .github
 merge_claude_md
