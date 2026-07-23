@@ -48,7 +48,8 @@ When a Claude Code Web session starts on a branch of this repo, the
 5. [Mirrors agent
    settings](.claude/hooks/session-start/scripts/merge-agent-settings.sh) from
    the cloned project (its `.claude/settings.json`, `.mcp.json`,
-   `.claude/agents/`, `.agents/`, `.github/`, and `CLAUDE.md`) into this repo
+   `.claude/agents/`, `.claude/skills/`, `.claude/commands/`, `.agents/`,
+   `.github/`, and `CLAUDE.md`) into this repo
    (the project's `CLAUDE.md` is written to `.claude/merged-agent-instructions.md`,
    imported by the root [CLAUDE.md](CLAUDE.md)), then commits and **pushes them
    to the project's settings branch** so the next
