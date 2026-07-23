@@ -15,8 +15,11 @@
 #                                   branch does not customize)
 #   * conflicts on shared        -> the conflicted file is agents-repo
 #     scaffolding                   scaffolding the branch must NOT customize
-#                                   (.claude/hooks/**, .claude/skills/**,
-#                                   tools/**). The source is
+#                                   (.claude/hooks/**, tools/**, and the agents
+#                                   repo's own skills
+#                                   .claude/skills/{commit-push-propagate,
+#                                   integration-pr}/** — NOT project-mirrored
+#                                   skills). The source is
 #                                   authoritative for these, so resolve toward
 #                                   THEIRS and commit — this catches up a branch
 #                                   that got an earlier iteration of the change
@@ -64,11 +67,15 @@ for b in "${BRANCHES[@]}"; do
   picks=$(git cherry "origin/$b" "$SRC" | awk '/^\+/ {print $2}')   # oldest-first SHAs missing on $b
 
   # --- pre-sync shared scaffolding to the source (in one commit) --------------
-  # Shared scaffolding (.claude/hooks/**, .claude/skills/**, tools/**) must be
+  # Shared scaffolding (.claude/hooks/**, tools/**, and the agents repo's own
+  # skills .claude/skills/{commit-push-propagate,integration-pr}/**) must be
   # identical on every branch — none of it is mirrored from a project, and the
   # merge hook forbids projects from overwriting it — so the source is
-  # authoritative. Force every shared file the branch has fallen behind on to the
-  # source BEFORE replaying any commit. Two reasons:
+  # authoritative. NOTE the skills scope is only those two scaffolding skills, NOT
+  # all of .claude/skills/: the rest is project-mirrored per-branch content (see
+  # merge-agent-settings.sh) that must be left alone here. Force every shared file
+  # the branch has fallen behind on to the source BEFORE replaying any commit. Two
+  # reasons:
   #   * It catches up a branch that is only behind on shared files, even when
   #     there are no commits to replay at all.
   #   * It removes a mixed-commit trap: a commit that touches both a lagged shared
@@ -80,7 +87,9 @@ for b in "${BRANCHES[@]}"; do
   #     reduces to its customized part and the superseded/genuine logic below
   #     handles it correctly.
   presynced=0
-  shared_lag=$(git diff --name-only "$SRC" HEAD -- .claude/hooks .claude/skills tools)
+  shared_lag=$(git diff --name-only "$SRC" HEAD -- \
+    .claude/hooks tools \
+    .claude/skills/commit-push-propagate .claude/skills/integration-pr)
   if [ -n "$shared_lag" ]; then
     while IFS= read -r f; do
       [ -n "$f" ] || continue
@@ -94,7 +103,7 @@ for b in "${BRANCHES[@]}"; do
       git -c core.editor=true commit -q -m "chore: sync shared scaffolding to $SRC
 
 Bring the agents-repo scaffolding that must be identical on every branch (hooks,
-skills, tools) back in line with $SRC; this branch had fallen behind.
+tools, scaffolding skills) back in line with $SRC; this branch had fallen behind.
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
       presynced=1
@@ -121,21 +130,27 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
     # cherry-pick did not complete: either a merge conflict or an empty result.
     uf=$(git diff --name-only --diff-filter=U)
     # Resolve each conflicted file by its role. Shared scaffolding
-    # (.claude/hooks/**, .claude/skills/**, tools/**) must be identical on every
-    # branch — none of it is mirrored from the project, and the merge hook forbids
-    # projects from overwriting the hooks/tools — so resolve it to the SOURCE's
-    # current version ($SRC), not --theirs. --theirs would be the picked commit's
-    # version, which is stale when replaying an OLD commit onto a branch already
-    # caught up by the pre-sync above (it would downgrade the file and fabricate
-    # net change, tripping a spurious BLOCK). Forcing to $SRC keeps the branch's
-    # already-synced version and nets to zero change. Any other file may be a
-    # legitimate per-branch customization (conf/.env, mirrored settings under
-    # .claude/agents|.agents|.github, .mcp.json, …): keep OURS, the safe default.
+    # (.claude/hooks/**, tools/**, and the agents repo's OWN skills under
+    # .claude/skills/{commit-push-propagate,integration-pr}/**) must be identical
+    # on every branch — none of it is mirrored from the project, and the merge
+    # hook forbids projects from overwriting the hooks/tools — so resolve it to
+    # the SOURCE's current version ($SRC), not --theirs. --theirs would be the
+    # picked commit's version, which is stale when replaying an OLD commit onto a
+    # branch already caught up by the pre-sync above (it would downgrade the file
+    # and fabricate net change, tripping a spurious BLOCK). Forcing to $SRC keeps
+    # the branch's already-synced version and nets to zero change. Any other file
+    # may be a legitimate per-branch customization (conf/.env, mirrored settings
+    # under .claude/agents|.agents|.github, .mcp.json, and PROJECT-mirrored skills
+    # under .claude/skills/ other than the two scaffolding ones above): keep OURS,
+    # the safe default. Keep the scaffolding-skills list in sync with
+    # merge-agent-settings.sh's mirror_dir .claude/skills excludes.
     customized_conflict=0
     while IFS= read -r f; do
       [ -n "$f" ] || continue
       case "$f" in
-      .claude/hooks/* | .claude/skills/* | tools/*) git checkout "$SRC" -- "$f" ;;
+      .claude/hooks/* | tools/* | \
+        .claude/skills/commit-push-propagate/* | \
+        .claude/skills/integration-pr/*) git checkout "$SRC" -- "$f" ;;
       *) git checkout --ours -- "$f"; customized_conflict=1 ;;
       esac
       git add -- "$f"
