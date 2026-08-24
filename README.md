@@ -56,7 +56,10 @@ When a Claude Code Web session starts on a branch of this repo, the
    session for that project picks them up automatically. The mirror is
    authoritative each run (removals in the source propagate), and the launcher's
    own scaffolding is re-injected afterward so regeneration keeps working. A run
-   with no changes produces no commit.
+   with no changes produces no commit. (Why copy all this instead of just
+   instructing the agent to read it from [src/](src/)? Because the harness — not
+   the agent — consumes most of it, and it does so before this hook runs:
+   [decision record](docs/decisions/2026-08-24-keep-the-settings-mirror.md).)
 
 Alongside the setup scripts, [conf/CLAUDE.md](conf/CLAUDE.md) holds
 **per-project/component agent instructions** — the agent-workflow overlay for
