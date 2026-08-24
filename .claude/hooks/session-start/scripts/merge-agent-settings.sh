@@ -17,6 +17,15 @@
 # propagate), then the agents-repo SessionStart scaffolding is re-injected so
 # regeneration keeps working. Idempotent: a second run with unchanged source
 # produces no commit.
+#
+# Why mirror at all, instead of just instructing Claude to read the project's
+# settings out of src/? Because this hook runs AFTER the harness has already
+# loaded settings.json/.mcp.json/agents/skills/commands for this session — the
+# mirror's payoff is the push to the settings branch, which configures the NEXT
+# session. Most of what is mirrored is consumed by the harness, not the model,
+# and no instruction can substitute for startup configuration. Decided
+# 2026-08-24 to keep the mirror whole; see
+# docs/decisions/2026-08-24-keep-the-settings-mirror.md.
 
 set -euo pipefail
 
