@@ -33,23 +33,33 @@ Skills live in `.claude/skills/` (invocable as `/skill-name`):
 
 ## OpenSpec
 
-There are **two** OpenSpec roots, split by concern:
+OpenSpec roots are split by concern, and the database side is split further
+by schema:
 
 - **Application root** — `openspec/` at the repo root. Owns changes to the
   application layer (`app/`, `docker/ng/`, and anything outside the DDL tree).
-- **Database root** — `docker/postgis/conf/ddl/geowep/openspec/`. Owns database
-  work (schema migrations, DDL, PostGIS). Change proposals, specs, and tasks
-  live under `docker/postgis/conf/ddl/geowep/openspec/changes/`.
+- **Database roots** — one per schema that has spec-driven work, at
+  `docker/postgis/conf/ddl/<schema>/openspec/`. Each owns the migrations and
+  DDL of its own schema. Existing roots: `geowep`, `geomonitoring`, and
+  `labspecs` (the last on the Digitale Labspecs branch). Create a new one with
+  `openspec init --tools none` in the schema folder when that schema first
+  needs a change, and give its `config.yaml` a `context:` block scoping it to
+  that schema.
 
 - OpenSpec commands (and skills like `/opsx:apply`, `/opsx:explore`) resolve to
-  the **nearest** `openspec/` root. Run them from the directory matching the
-  concern:
-  - Application changes: run from the repo root (or `app/` / `docker/ng/`);
-    these resolve to the repo-root root.
-  - Database changes: run from `docker/postgis/conf/ddl/geowep/` (or a
-    subdirectory); these resolve to the DDL root. When invoking from the repo
-    root — for example `/opsx:apply` in Claude Code web — first `cd` into
-    `docker/postgis/conf/ddl/geowep/`, otherwise the change will not be found.
+  the **nearest** `openspec/` root, so running them from inside the schema
+  folder you are working on is enough:
+  - Application changes: run from the repo root (or `app/` / `docker/ng/`).
+  - Database changes: run from `docker/postgis/conf/ddl/<schema>/` or any
+    subdirectory of it, such as `schema/<n>/`.
+  - Beware the levels in between: `docker/postgis/conf/ddl/` itself has no
+    root, so commands run there (or in a schema folder without one) walk all
+    the way up to the **application** root and will not find database changes.
+    When invoking from the repo root — for example `/opsx:apply` in Claude Code
+    web — `cd` into the schema folder first.
+- A change that spans schemas belongs to the schema whose migrations it adds.
+  Reference the other schema's objects in the proposal rather than splitting
+  the change across roots.
 - List active changes with `openspec list --json`; the resolved root is echoed
   in the JSON `root.path`, so check it to confirm which root you are acting on.
 
