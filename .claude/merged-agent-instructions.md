@@ -74,6 +74,34 @@ by schema:
 Key components: Map view (OpenLayers), grid views (SlickGrid), tab system, GIS
 tools (selection, measurement, point editor).
 
+## Third-Party Credentials
+
+Credentials for third-party services are known only to the `api` component and
+are injected server-side by the `proxy` component; they are never application
+data handed to the browser, and never stored in the database.
+
+- Configure the credential in `docker/api/GeoLoket/appsettings.json` (each
+  environment overrides it through the container's environment).
+- Add an `authorise` mapping for the service in `docker/proxy/conf/args`, e.g.
+  `topoplus=authorise,https://topoplus.omgevingsserver.nl`.
+- Handle the mapping's path in `Authorization.AuthPathHandler`
+  (`docker/api/GeoLoket/Authorization.cs`): decide whether the user may use the
+  service, and return the credential. The proxy calls this on every proxied
+  request (`AUTH_PATH`).
+- The proxy applies what is returned in two ways: it sets it as the
+  `Authorization` header on the upstream request, **and** it substitutes it for
+  the literal `${AUTHORIZATION}` in any query-parameter value. Services that
+  take a key as a query parameter instead of a header — Google Maps, for
+  example — therefore request `?key=${AUTHORIZATION}` through the mapping.
+- The apps address a mapping as `<prefix>/geowep/<mapping>/<upstream path>`,
+  where the prefix comes from `config.prefix` (`app/src/config.js`) or
+  `ConfigService.serviceURL` (`docker/ng`).
+
+Caveat for Google Maps: the Maps JavaScript API echoes the key back inside the
+loader script it returns, so the proxy hides the key from anonymous visitors
+and from `/settings`, but not from a logged-in user reading the response.
+Restrict the key by HTTP referrer in the Google Cloud console as well.
+
 ## Build and Test
 
 ```bash
