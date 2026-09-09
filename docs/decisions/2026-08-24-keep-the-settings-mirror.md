@@ -86,8 +86,18 @@ turn out to be dynamic rather than startup-only:
 
 1. Whether Claude Code re-reads `settings.json` mid-session for anything beyond
    permissions (hooks are documented as needing a restart, which is what makes
-   them a blocker).
-2. Whether skills and commands are ever re-discovered after startup.
+   them a blocker). Still unverified.
+2. Whether skills and commands are ever re-discovered after startup. **Answered
+   2026-09-09: yes.** A session whose checkout was two commits behind its
+   settings branch fast-forwarded the workspace mid-session; the six
+   `.claude/commands/opsx/*.md` and six `.claude/skills/openspec-*/` that
+   arrived on disk were surfaced to the model as available commands/skills in
+   the same session, without a restart. So the mirror's payoff is not purely
+   "configures the NEXT session": whatever it writes to disk before or during a
+   session is picked up for these two rows. This is why
+   `merge-agent-settings.sh` now fast-forwards the checkout to the settings
+   branch before mirroring (see section 8 there) — it delivers settings pushed
+   by earlier sessions to the running one too.
 
 One idea worth keeping on the shelf regardless: the hook already emits a status
 line into the session context, and could just as well emit project instructions
