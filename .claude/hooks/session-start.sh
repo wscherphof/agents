@@ -50,6 +50,14 @@ dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # The current setup step, recorded before each one runs, so a failure can name
 # the step that died. Read back after the subshell only on failure.
 phase_file="$dir/.session-start-phase"
+# A setup step can also complete while leaving the session degraded — most
+# notably merge-agent-settings.sh mirroring fine but failing to push, so the
+# session runs on stale settings. Such a step writes one line here and it is
+# appended to the status line below, instead of being buried in the log. Cleared
+# first, so a warning from an earlier run on this container is not re-reported.
+merge_warning_file="$dir/.session-start-merge-warning"
+rm -f "$merge_warning_file"
+export AGENTS_MERGE_WARNING_FILE="$merge_warning_file"
 (
   # Abort the whole setup on the first failing step, so its exit status reflects
   # whether setup actually completed (background installs excepted — they are
@@ -183,7 +191,9 @@ hook_status=$?
 # degraded session — clone or settings merge that silently failed — is surfaced
 # instead of worked on obliviously. Absence of this line in a remote project
 # session is itself a signal that setup did not reach this point.
-if [ "$hook_status" -eq 0 ]; then
+if [ "$hook_status" -eq 0 ] && [ -s "$merge_warning_file" ]; then
+  echo "session-start-hook: OK WITH WARNINGS — cloned $AGENTS_GIT_ACCOUNT/$AGENTS_GIT_REPO and merged agent settings into src/, but: $(tr '\n' ' ' <"$merge_warning_file")— see .claude/hooks/session-start.log."
+elif [ "$hook_status" -eq 0 ]; then
   echo "session-start-hook: OK — cloned $AGENTS_GIT_ACCOUNT/$AGENTS_GIT_REPO and merged agent settings into src/. Any background installs (az CLI / Docker) may still be finishing; see their logs under .claude/hooks/session-start/scripts/."
 else
   echo "session-start-hook: FAILED during \"$(cat "$phase_file" 2>/dev/null || echo 'unknown step')\" (exit $hook_status). Setup stopped at that step (steps before it did complete). See .claude/hooks/session-start.log; do not assume the project is fully set up."

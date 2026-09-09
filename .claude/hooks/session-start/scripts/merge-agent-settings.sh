@@ -341,22 +341,29 @@ merge_claude_md() {
 }
 
 # --- run filesystem mutations (git strictly last) ---------------------------
-mirror_settings
-mirror_mcp
-copy_referenced_files
-mirror_dir .claude/agents
-# .claude/skills is shared: the agents repo keeps its OWN scaffolding skills
-# here (commit-push-propagate, integration-pr) alongside any the project ships.
-# Exclude them so the project mirror never prunes them off the settings branch —
-# integration-pr in particular is used by remote sessions. Keep this list in
-# sync with propagate.sh's scaffolding-skills case.
-mirror_dir .claude/skills commit-push-propagate/ integration-pr/
-mirror_dir .claude/commands
-mirror_dir .agents
-mirror_dir .github
-merge_claude_md
+# Grouped into a function because section 9 may run it twice: if the push loses
+# a race to a concurrent session for the same project, the mirror is rebuilt on
+# the new tip of the settings branch and pushed again. Every step recomputes its
+# output from the project's checked-in files, so re-running is both safe and
+# cheap — filesystem only, no network.
+run_mirror() {
+  mirror_settings
+  mirror_mcp
+  copy_referenced_files
+  mirror_dir .claude/agents
+  # .claude/skills is shared: the agents repo keeps its OWN scaffolding skills
+  # here (commit-push-propagate, integration-pr) alongside any the project
+  # ships. Exclude them so the project mirror never prunes them off the settings
+  # branch — integration-pr in particular is used by remote sessions. Keep this
+  # list in sync with propagate.sh's scaffolding-skills case.
+  mirror_dir .claude/skills commit-push-propagate/ integration-pr/
+  mirror_dir .claude/commands
+  mirror_dir .agents
+  mirror_dir .github
+  merge_claude_md
+}
 
-# --- 8. commit + push to the project's settings branch ----------------------
+# --- 8. settings branch: derive the target, sync the local checkout ---------
 # The mirrored settings must land on a STABLE per-project branch so any future
 # web session started from it picks them up. Do NOT push to whatever branch the
 # session is currently checked out on: the web harness starts sessions on
@@ -390,52 +397,155 @@ if [ -z "$target_branch" ]; then
   fi
 fi
 
-# Remember where the session's checked-out branch started, so we can roll it
-# back below (whether or not the push succeeds). Captured before any commit
-# moves it.
-session_head="$(git -C "$DEST" rev-parse HEAD)"
+# Bring the checked-out branch up to date with the settings branch BEFORE
+# mirroring onto it. Fast-forward only: never a rebase, reset or force-push.
+#
+# Two things go wrong without this, and both did:
+#
+#  * The push in section 9 is a plain fast-forward push, so a checkout that is
+#    BEHIND the settings branch can never publish its mirror. Nothing else ever
+#    advances a container's local settings branch either — the project clone
+#    under src/ gets `pull --ff-only` from session-start.sh, the agents repo at
+#    the workspace root got nothing, and on resume the harness re-checks-out the
+#    same local ref. So a container that started seconds before a concurrent
+#    session's mirror landed stayed stuck behind that commit for its whole life:
+#    re-mirroring, failing to push and discarding the result on every hook run.
+#  * The mirror is computed against whatever the tree holds, so an out-of-date
+#    checkout also means the session itself runs on settings older than the ones
+#    already published on its own settings branch.
+#
+# A non-fast-forward here is NOT an error: the checkout may legitimately be
+# ahead (its own commits are not pushed yet), or be an ephemeral claude/<id>
+# branch the session has already committed to, or the tree may be dirty on a
+# resume. Log it and mirror onto the checkout as-is; the push decides.
+#
+# Also records whether the branch exists on origin at all, which the commit step
+# needs: with no branch to fetch there is nothing to fast-forward to, and the
+# push has to happen even when the mirror produces no diff.
+settings_branch_on_origin=
+sync_settings_branch() {
+  if ! git -C "$DEST" fetch origin "$target_branch" >&2; then
+    settings_branch_on_origin=
+    log "no '$target_branch' branch on origin yet — this is its first mirror"
+    return 0
+  fi
+  settings_branch_on_origin=1
+  if git -C "$DEST" merge --ff-only FETCH_HEAD >&2; then
+    log "checkout is in sync with origin/$target_branch"
+  else
+    log "checkout is not a fast-forward of origin/$target_branch — mirroring onto it as-is"
+  fi
+}
 
-git -C "$DEST" add -A
-if git -C "$DEST" diff --cached --quiet; then
-  log "no changes to commit"
-  exit 0
+# --- 9. commit + push to the project's settings branch ----------------------
+# Which branch the session is on decides what happens to the mirror commit
+# after a successful push — see the rollback at the end.
+current_branch="$(git -C "$DEST" rev-parse --abbrev-ref HEAD)"
+
+# Up to two attempts. A concurrent session for the same project can push its own
+# mirror in the window between our fetch and our push; that is not hypothetical,
+# two containers starting ~25 s apart have collided exactly there. On a lost
+# race, drop our commit, sync to the new tip, rebuild the mirror and push once
+# more. A second failure is reported and left alone — the next session now
+# fetches the branch first, so it retries from an up-to-date base.
+pushed=
+mirror_committed=
+for attempt in 1 2; do
+  sync_settings_branch
+
+  # The commit the mirror is built on, and where the checked-out branch is
+  # rolled back to. Captured AFTER the sync, so a fast-forward is KEPT — that is
+  # how this session picks up settings pushed by earlier sessions — and only our
+  # own mirror commit is ever discarded.
+  base_head="$(git -C "$DEST" rev-parse HEAD)"
+
+  run_mirror
+
+  git -C "$DEST" add -A
+  if git -C "$DEST" diff --cached --quiet; then
+    log "no changes to commit"
+    # There may still be nothing on origin to start the NEXT session from: the
+    # first mirror for a project, or a freshly pointed AGENTS_SETTINGS_BRANCH,
+    # where the mirror happens to produce no diff against this checkout. Create
+    # the branch from HEAD in that case — with the branch already on origin,
+    # "no diff" genuinely means it is already up to date.
+    if [ -z "$settings_branch_on_origin" ]; then
+      if git -C "$DEST" push origin "HEAD:$target_branch" >&2; then
+        log "created settings branch '$target_branch' at HEAD (no mirror diff)"
+      else
+        log "failed to create settings branch '$target_branch'"
+        break
+      fi
+    fi
+    pushed=1
+    break
+  fi
+
+  msg="chore(agents): mirror agent settings from $AGENTS_GIT_ACCOUNT/$AGENTS_GIT_REPO"
+  if [ -n "$COMPONENT_REL" ]; then msg="$msg (component: $COMPONENT_REL)"; fi
+  msg="$msg @ $SRC_SHA"
+
+  # Author the mirror commit under the identity captured by session-start.sh
+  # before it set the Claude identity for the harness backstop commit — i.e. the
+  # identity the environment (the Claude Code Web harness) had configured at
+  # session start. Nothing is hardcoded to a person: with no captured identity
+  # (env configured none) this falls back to the Claude identity now in global
+  # config.
+  git -C "$DEST" \
+    -c user.name="${AGENTS_ORIG_GIT_NAME:-Claude}" \
+    -c user.email="${AGENTS_ORIG_GIT_EMAIL:-noreply@anthropic.com}" \
+    commit -m "$msg" >&2
+
+  # Plain (non-forced) push: a fast-forward onto the settings branch succeeds;
+  # if the branch has moved on (or the name is invalid/colliding) it fails. We
+  # do NOT let a failure abort the script — it would skip the rollback below and
+  # strand the commit — we capture it and retry/warn instead.
+  if git -C "$DEST" push origin "HEAD:$target_branch" >&2; then
+    log "committed and pushed to $target_branch"
+    pushed=1
+    mirror_committed=1
+    break
+  fi
+
+  log "push to settings branch '$target_branch' was rejected (attempt $attempt/2)"
+  git -C "$DEST" reset --hard "$base_head" >&2
+done
+
+if [ -z "$pushed" ]; then
+  warning="the freshly merged agent settings could NOT be pushed to settings branch '$target_branch', so this session (and the next, until a push succeeds) runs on whatever settings that branch already carried"
+  log "WARNING: $warning"
+  log "  The mirror is idempotent and the next session fetches '$target_branch'"
+  log "  before mirroring, so it retries from an up-to-date base. If it keeps"
+  log "  failing, check the branch name / push permissions, or set"
+  log "  AGENTS_SETTINGS_BRANCH to override."
+  # Also surface it in the hook's single context line: a silently stale mirror
+  # is exactly the kind of degraded session the status line exists to report.
+  if [ -n "${AGENTS_MERGE_WARNING_FILE:-}" ]; then
+    printf '%s\n' "$warning" >"$AGENTS_MERGE_WARNING_FILE"
+  fi
 fi
 
-msg="chore(agents): mirror agent settings from $AGENTS_GIT_ACCOUNT/$AGENTS_GIT_REPO"
-if [ -n "$COMPONENT_REL" ]; then msg="$msg (component: $COMPONENT_REL)"; fi
-msg="$msg @ $SRC_SHA"
-
-# Author the mirror commit under the identity captured by session-start.sh
-# before it set the Claude identity for the harness backstop commit — i.e. the
-# identity the environment (the Claude Code Web harness) had configured at
-# session start. Nothing is hardcoded to a person: with no captured identity
-# (env configured none) this falls back to the Claude identity now in global
-# config.
-git -C "$DEST" \
-  -c user.name="${AGENTS_ORIG_GIT_NAME:-Claude}" \
-  -c user.email="${AGENTS_ORIG_GIT_EMAIL:-noreply@anthropic.com}" \
-  commit -m "$msg" >&2
-# Plain (non-forced) push: a fast-forward onto the settings branch succeeds; if
-# the branch has diverged (or the name is invalid/colliding) it fails. We do NOT
-# let a failure abort the script (it would skip the reset below and strand the
-# commit) — we capture it and warn instead.
-if git -C "$DEST" push origin "HEAD:$target_branch" >&2; then
-  log "committed and pushed to $target_branch"
+# Roll the session's checked-out branch back, discarding the local mirror
+# commit — but NOT when the session is checked out on the settings branch
+# itself.
+#
+# The reason to roll back at all is the ephemeral claude/<id> branch the web
+# harness may start a session on: a mirror commit left there would be pushed as
+# a redundant claude/<session> branch by end-of-session persistence. That does
+# not apply when the checkout IS the settings branch (the harness does this when
+# it is the session's designated branch): the commit has just been pushed to
+# exactly that branch, so keeping it is what makes the working tree agree with
+# the remote. Resetting it away would put the session back on settings it had
+# already superseded — the bug this section used to have.
+#
+# On the failure path the loop has already reset to $base_head, so the reset
+# below is a no-op there; on success without a commit ("no changes") $base_head
+# is still HEAD and it is a no-op too.
+if [ -n "$pushed" ] && [ "$current_branch" = "$target_branch" ]; then
+  if [ -n "$mirror_committed" ]; then
+    log "keeping the mirror commit: checked out on settings branch '$target_branch'"
+  fi
 else
-  log "WARNING: push to settings branch '$target_branch' FAILED — settings were"
-  log "  not updated this session. The mirror is idempotent and will retry next"
-  log "  session; if it keeps failing, check the branch name / push permissions"
-  log "  or set AGENTS_SETTINGS_BRANCH to override. Discarding the local commit"
-  log "  anyway (see below)."
+  git -C "$DEST" reset --hard "$base_head" >&2
+  log "reset session branch to $base_head"
 fi
-
-# Roll the session's checked-out branch back to where it started, discarding the
-# local merge commit. UNCONDITIONAL — whether or not the push succeeded — so the
-# ephemeral claude/<session> branch never carries a commit that Claude Code Web's
-# end-of-session persistence would push as a redundant claude/<session> branch.
-# There is no loss: on success the settings live on the settings branch (their
-# permanent home, which future sessions clone from); on failure the mirror is
-# idempotent and regenerates next session. Either way the current session keeps
-# using the settings its own clone started with — it never consumes this commit.
-git -C "$DEST" reset --hard "$session_head" >&2
-log "reset session branch to $session_head"
