@@ -77,8 +77,13 @@ conventional-commit message (`docs:`/`feat:`/`fix:`/… matching the repo's styl
 trailer this repo uses:
 
 ```
-Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+Co-Authored-By: <the model you actually are> <noreply@anthropic.com>
 ```
+
+Take the model name from the trailer your own harness instructions specify (e.g.
+`Claude Opus 5 (1M context)`), **not** from the newest trailer in `git log` —
+that one names whichever model committed last and goes stale at every model
+bump. The format is what's fixed here; the name is whoever is doing the work.
 
 If the tree is clean (nothing to commit), or the user already committed and only
 wants the push+propagate, skip the commit and proceed. Multiple pending commits
