@@ -53,10 +53,18 @@ When a Claude Code Web session starts on a branch of this repo, the
    (the project's `CLAUDE.md` is written to `.claude/merged-agent-instructions.md`,
    imported by the root [CLAUDE.md](CLAUDE.md)), then commits and **pushes them
    to the project's settings branch** so the next
-   session for that project picks them up automatically. The mirror is
-   authoritative each run (removals in the source propagate), and the launcher's
-   own scaffolding is re-injected afterward so regeneration keeps working. A run
-   with no changes produces no commit. (Why copy all this instead of just
+   session for that project picks them up automatically. Before mirroring it
+   **fast-forwards the checkout to that settings branch** (fetch + `--ff-only`,
+   never a rebase or force-push), so the mirror is built on the branch's current
+   state and the push is a fast-forward — without this, a checkout that had
+   fallen behind (a concurrent session's mirror landing first, or a scaffolding
+   push) could never publish again, and re-mirrored, failed to push and
+   discarded the result on every run. Losing that race is retried once. The
+   mirror is authoritative each run (removals in the source propagate), and the
+   launcher's own scaffolding is re-injected afterward so regeneration keeps
+   working. A run with no changes produces no commit. If the push cannot be
+   made at all, the hook's status line says `OK WITH WARNINGS` rather than
+   reporting plain success. (Why copy all this instead of just
    instructing the agent to read it from [src/](src/)? Because the harness — not
    the agent — consumes most of it, and it does so before this hook runs:
    [decision record](docs/decisions/2026-08-24-keep-the-settings-mirror.md).)
