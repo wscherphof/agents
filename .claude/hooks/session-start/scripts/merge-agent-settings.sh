@@ -449,6 +449,7 @@ current_branch="$(git -C "$DEST" rev-parse --abbrev-ref HEAD)"
 # more. A second failure is reported and left alone — the next session now
 # fetches the branch first, so it retries from an up-to-date base.
 pushed=
+mirror_committed=
 for attempt in 1 2; do
   sync_settings_branch
 
@@ -502,6 +503,7 @@ for attempt in 1 2; do
   if git -C "$DEST" push origin "HEAD:$target_branch" >&2; then
     log "committed and pushed to $target_branch"
     pushed=1
+    mirror_committed=1
     break
   fi
 
@@ -540,7 +542,9 @@ fi
 # below is a no-op there; on success without a commit ("no changes") $base_head
 # is still HEAD and it is a no-op too.
 if [ -n "$pushed" ] && [ "$current_branch" = "$target_branch" ]; then
-  log "keeping the mirror commit: checked out on settings branch '$target_branch'"
+  if [ -n "$mirror_committed" ]; then
+    log "keeping the mirror commit: checked out on settings branch '$target_branch'"
+  fi
 else
   git -C "$DEST" reset --hard "$base_head" >&2
   log "reset session branch to $base_head"
