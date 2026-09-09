@@ -13,3 +13,7 @@ set -euxo pipefail
 # forbid hand-creating change directories, so the whole workflow is unusable in a
 # remote session.
 npm ci
+
+# Install the docker4gis CLI globally, which is required for Docker-related
+# operations in the project.
+npm install -g docker4gis
