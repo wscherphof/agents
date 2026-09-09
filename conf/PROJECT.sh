@@ -7,4 +7,9 @@
 
 set -euxo pipefail
 
-# npm ci
+# Install the repo-root dependencies. Currently just @fission-ai/openspec, whose
+# `openspec` CLI the .claude/commands/opsx/* commands drive — without this the
+# commands are present but every `openspec …` call fails, and the guardrails
+# forbid hand-creating change directories, so the whole workflow is unusable in a
+# remote session.
+npm ci
