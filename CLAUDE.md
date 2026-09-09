@@ -42,6 +42,7 @@ hook keeps its verbose output in
 
 ```
 session-start-hook: OK — cloned <account>/<repo> and merged agent settings into src/. …
+session-start-hook: OK WITH WARNINGS — cloned <account>/<repo> and merged agent settings into src/, but: <warning> …
 session-start-hook: FAILED during "<step>" (exit N). See .claude/hooks/session-start.log …
 ```
 
@@ -50,6 +51,13 @@ suggestion below** (see "Naming the session"): one line on success (e.g. "✅
 session-start hook completed — project cloned and settings merged"), and on
 failure relay the failing step and the log path, and warn that the project may
 not be set up before doing any project work.
+
+`OK WITH WARNINGS` means every setup step ran, but one of them left the session
+degraded in a way that matters — currently only one thing does: the settings
+mirror was built but could not be pushed to the settings branch, so this session
+(and the next one, until the push succeeds) runs on the settings its clone
+started with rather than the freshly merged ones. Relay the warning verbatim
+alongside the success line; don't reduce it to a plain "✅".
 
 Because success is stated affirmatively, its **absence is itself a signal**: in a
 remote project session, if no `session-start-hook:` line appears in your context,
